@@ -1,17 +1,904 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/logo-spear.png" />
-    <title>Panel Spear — Spear Contact</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/tabler-icons.min.css" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Panel Spear — Spear Contact</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/tabler-icons.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+/* ─── Panel Spear · Global Styles ─────────────────────────────────────────── */
+
+:root {
+  /* Brand colours */
+  --sp-navy:        #0D1B2E;
+  --sp-navy-mid:    #132340;
+  --sp-navy-light:  #1A3158;
+  --sp-blue:        #1B4FD8;
+  --sp-blue-light:  rgba(27, 79, 216, 0.10);
+  --sp-blue-mid:    rgba(27, 79, 216, 0.20);
+  --sp-blue-border: rgba(27, 79, 216, 0.25);
+
+  /* Neutrals */
+  --sp-white:       #FFFFFF;
+  --sp-bg:          #F2F5F9;
+  --sp-surface:     #FFFFFF;
+  --sp-border:      #E2E7EF;
+  --sp-border-dark: #C8D0DC;
+
+  /* Text */
+  --sp-text:        #0D1B2E;
+  --sp-text-sec:    #4A5568;
+  --sp-text-ter:    #8A97A8;
+
+  /* Semantic */
+  --sp-success:     #1D9E75;
+  --sp-success-bg:  rgba(29, 158, 117, 0.10);
+  --sp-success-bdr: rgba(29, 158, 117, 0.25);
+  --sp-danger:      #E24B4A;
+  --sp-danger-bg:   rgba(226, 75, 74, 0.10);
+  --sp-danger-bdr:  rgba(226, 75, 74, 0.25);
+  --sp-warning:     #D97706;
+  --sp-warning-bg:  rgba(217, 119, 6, 0.10);
+  --sp-warning-bdr: rgba(217, 119, 6, 0.25);
+
+  /* Radius */
+  --r:    10px;
+  --r-sm: 6px;
+  --r-xs: 4px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(13,27,46,.06), 0 1px 2px rgba(13,27,46,.04);
+  --shadow-md: 0 4px 12px rgba(13,27,46,.08), 0 2px 4px rgba(13,27,46,.05);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--sp-bg);
+  color: var(--sp-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sp-border-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sp-text-ter); }
+
+/* ─── Layout utilities ─────────────────────────────────────────────────────── */
+.page-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-body {
+  flex: 1;
+  padding: 16px 20px 24px;
+  overflow-x: hidden;
+}
+
+/* ─── Card ──────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--sp-surface);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.card-head {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--sp-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--sp-surface);
+}
+
+.card-title  { font-size: 13px; font-weight: 700; color: var(--sp-text); }
+.card-sub    { font-size: 11px; color: var(--sp-text-ter); margin-top: 2px; }
+.card-body   { padding: 14px 16px; }
+
+/* ─── Section label ────────────────────────────────────────────────────────── */
+.sl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sp-text-ter);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sl::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sp-border);
+}
+
+/* ─── Badges ────────────────────────────────────────────────────────────────── */
+.bdg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.bdg-ok      { background: var(--sp-success-bg);  color: var(--sp-success); }
+.bdg-warn    { background: var(--sp-warning-bg);   color: var(--sp-warning); }
+.bdg-err     { background: var(--sp-danger-bg);    color: var(--sp-danger);  }
+.bdg-info    { background: var(--sp-blue-light);   color: var(--sp-blue);    }
+.bdg-neutral { background: var(--sp-bg);           color: var(--sp-text-ter);}
+
+/* ─── Buttons ───────────────────────────────────────────────────────────────── */
+.btn-primary {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--sp-navy);
+  color: var(--sp-white);
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background .15s;
+  font-family: inherit;
+}
+.btn-primary:hover { background: var(--sp-navy-light); }
+
+.btn-secondary {
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--sp-text-sec);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all .12s;
+  font-family: inherit;
+}
+.btn-secondary:hover { border-color: var(--sp-blue); color: var(--sp-blue); }
+
+.btn-notify {
+  padding: 4px 11px;
+  font-size: 10px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--sp-blue);
+  border: 1.5px solid var(--sp-blue);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .12s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn-notify:hover { background: var(--sp-blue); color: var(--sp-white); }
+.btn-notify:disabled { background: var(--sp-success-bg); border-color: var(--sp-success); color: var(--sp-success); cursor: default; }
+
+/* ─── Chips / Filter pills ──────────────────────────────────────────────────── */
+.chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: 1.5px solid var(--sp-border);
+  background: var(--sp-surface);
+  color: var(--sp-text-sec);
+  transition: all .12s;
+  user-select: none;
+}
+.chip:hover     { border-color: var(--sp-blue); color: var(--sp-blue); }
+.chip.active    { background: var(--sp-navy); color: var(--sp-white); border-color: var(--sp-navy); }
+
+/* ─── Metric tabs ───────────────────────────────────────────────────────────── */
+.mtab {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: 1.5px solid var(--sp-border);
+  background: transparent;
+  color: var(--sp-text-sec);
+  transition: all .12s;
+  font-family: inherit;
+}
+.mtab.active { background: var(--sp-navy); color: var(--sp-white); border-color: var(--sp-navy); }
+
+/* ─── Progress bar ──────────────────────────────────────────────────────────── */
+.progress-wrap { height: 4px; background: var(--sp-border); border-radius: 2px; margin-top: 5px; }
+.progress-fill { height: 4px; border-radius: 2px; transition: width .4s ease; }
+
+/* ─── Table ─────────────────────────────────────────────────────────────────── */
+.sp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.sp-table th {
+  padding: 7px 10px;
+  background: var(--sp-bg);
+  color: var(--sp-text-ter);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1px solid var(--sp-border);
+  text-align: left;
+}
+.sp-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sp-border);
+  color: var(--sp-text);
+  vertical-align: middle;
+}
+.sp-table tr:last-child td { border-bottom: none; }
+.sp-table tr:hover td      { background: var(--sp-bg); }
+.sp-table tr.row-total td  {
+  background: var(--sp-bg);
+  font-weight: 700;
+  border-top: 1.5px solid var(--sp-border-dark);
+}
+
+/* ─── Input ─────────────────────────────────────────────────────────────────── */
+.sp-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--sp-text);
+  background: var(--sp-surface);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--r-sm);
+  outline: none;
+  transition: border-color .12s;
+}
+.sp-input:focus { border-color: var(--sp-blue); background: var(--sp-blue-light); }
+
+/* ─── Trend indicators ──────────────────────────────────────────────────────── */
+.t-up { color: var(--sp-success); font-weight: 600; }
+.t-dn { color: var(--sp-danger);  font-weight: 600; }
+.t-eq { color: var(--sp-text-ter); }
+
+/* ─── Mini bar ──────────────────────────────────────────────────────────────── */
+.mini-bar { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.mini-bar-bg   { flex: 1; height: 4px; background: var(--sp-border); border-radius: 2px; }
+.mini-bar-fill { height: 4px; border-radius: 2px; }
+
+/* ─── Alert bar ─────────────────────────────────────────────────────────────── */
+.alert-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 8px 11px;
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.alert-bar.warn {
+  background: var(--sp-warning-bg);
+  border: 1px solid var(--sp-warning-bdr);
+  color: var(--sp-warning);
+}
+.alert-bar.err {
+  background: var(--sp-danger-bg);
+  border: 1px solid var(--sp-danger-bdr);
+  color: var(--sp-danger);
+}
+.alert-bar.info {
+  background: var(--sp-blue-light);
+  border: 1px solid var(--sp-blue-border);
+  color: var(--sp-blue);
+}
+
+/* ─── Person row ────────────────────────────────────────────────────────────── */
+.person-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  margin-bottom: 3px;
+  background: var(--sp-bg);
+}
+.person-av {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; flex-shrink: 0;
+  background: var(--sp-danger-bg); color: var(--sp-danger);
+}
+.person-name { font-size: 12px; color: var(--sp-text); flex: 1; font-weight: 500; }
+.person-tag  { font-size: 10px; color: var(--sp-text-ter); }
+
+/* ─── Note bar ──────────────────────────────────────────────────────────────── */
+.note-bar {
+  font-size: 11px;
+  color: var(--sp-text-ter);
+  padding: 5px 10px;
+  background: var(--sp-blue-light);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--sp-blue);
+  margin-bottom: 8px;
+}
+
+/* ─── Two-column grid ───────────────────────────────────────────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* ─── KPI grid ──────────────────────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* ─── Calc box ──────────────────────────────────────────────────────────────── */
+.calc-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--sp-blue-light);
+  border-radius: var(--r-sm);
+  padding: 10px 13px;
+  margin-bottom: 8px;
+}
+
+/* ─── Day picker grid ───────────────────────────────────────────────────────── */
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.day-btn {
+  font-size: 11px;
+  padding: 5px 2px;
+  text-align: center;
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  border: 1px solid var(--sp-border);
+  background: var(--sp-bg);
+  color: var(--sp-text-sec);
+  font-family: 'DM Mono', monospace;
+  transition: all .1s;
+}
+.day-btn:hover:not(.future) { border-color: var(--sp-blue); color: var(--sp-blue); }
+.day-btn.filled   { border-color: var(--sp-success-bdr); background: var(--sp-success-bg); color: var(--sp-success); }
+.day-btn.today    { border-color: var(--sp-blue-border);  background: var(--sp-blue-light); color: var(--sp-blue); font-weight: 600; }
+.day-btn.selected { border-color: var(--sp-navy); background: var(--sp-navy); color: var(--sp-white); font-weight: 600; }
+.day-btn.future   { opacity: .3; cursor: default; }
+
+/* ─── Cell input ────────────────────────────────────────────────────────────── */
+.cell-wrap {
+  background: var(--sp-surface);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  transition: border-color .12s;
+}
+.cell-wrap:hover  { border-color: var(--sp-border-dark); }
+.cell-wrap:focus-within { border-color: var(--sp-blue); }
+.cell-label { font-size: 11px; color: var(--sp-text-sec); margin-bottom: 4px; }
+.cell-hint  { font-size: 10px; color: var(--sp-text-ter); margin-top: 3px; }
+.cell-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--sp-text);
+  outline: none;
+  font-family: 'DM Mono', monospace;
+}
+.cell-input::placeholder { color: var(--sp-border-dark); }
+.cell-input.money { color: #0F6E56; }
+.cell-input.pct   { color: var(--sp-blue); }
+
+/* ─── Pending panel ─────────────────────────────────────────────────────────── */
+.pend-head {
+  padding: 10px 14px;
+  background: var(--sp-danger-bg);
+  border-bottom: 1px solid var(--sp-danger-bdr);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pend-row {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--sp-border);
+  gap: 10px;
+  transition: background .1s;
+}
+.pend-row:last-child { border-bottom: none; }
+.pend-row:hover { background: var(--sp-bg); }
+.pend-row.notified { opacity: .55; }
+.pend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pend-ok-section {
+  padding: 5px 14px;
+  background: var(--sp-bg);
+  border-top: 1px solid var(--sp-border);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--sp-success);
+}
+.pend-ok-row {
+  display: flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--sp-border);
+  gap: 10px;
+  opacity: .65;
+}
+.pend-ok-row:last-child { border-bottom: none; }
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>window.SPEAR_LOGO="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACuASEDASIAAhEBAxEB/8QAHQABAAIDAQEBAQAAAAAAAAAAAAcIAQUGBAMJAv/EAEsQAAEEAQIEAwQDBhQHAQAAAAEAAgMEBQYRBxIhMQhBURMiYXEUgZEjMjNCobMVFhg3Q1JVYmRyc3WCkpOUscHR0xc2RVSDwsPS/8QAGgEBAAMBAQEAAAAAAAAAAAAAAAECBQMEBv/EADQRAQABAgMEBwcFAAMAAAAAAAABAhEDBAUSITGRBkFRUmGh0RMUFRZDU7EiMkJxgSOiwf/aAAwDAQACEQMRAD8AuWiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiE7KMNY8c9C6dvSUWWLWWsxOLZG0Iw9jCO4L3ENP1EoJPRQvjfEdoqxYEdzHZukwn8K+Fj2t+JDXE/YCpZwGZxWfxkWTw16G9Tl+8liduNx3B8wR5g9Qg96LRa71RjtHaasZ/KR2ZKsDmNc2u0OeS5waNgSB3Pqovd4lNG7+7hs+R6mKEf/RBNqKF63iQ0RI8NnxuegG494wROH5JN/wAi7vRfEjRmr5RXwmahktbb/RpWmKUjbc7NcAXfVug61EB3CijP8e9F4XN3sRbp5t1ilO+CUx14y0uaSDsTIDt09EEroob/AFR2hP8AsM//AHaL/cWHeI/QYBJo58AfwaL/AHEEyovhj7LLtCvcja9jJ4myta8bOAcNwD8eq+57ICKMtZcbtHaW1JbwN+DKz2qha2V1aFjmAlodsCXjqARv07r66F4z6R1hqOHA42HJwW5mOdGbULGsdyjcjcPPXYE/UgkhEXnylyLHY21fnDzFWhfM8MG7i1rSTt8eiD0IoSm8SejR+Cw2ekHkTHE3/wCi848S+md+unM0B67xf/pBOqKKtMce9A5m0yrYnu4iWQhrTehDYyT+/aXAfN2ylRj2vaHNIII3BHYhBlERAREQEREBERAREQEREBERARFXvW/iEyentYZbBx6YqWI6Fp8Aldcc0vDT3I5TstDTtLzOo4k4eWpvMRfjEfl5s1nMLK0xVizaJSP4gctdwvCPOXcfI+Kw5kcDZGHZzBJI1jiD67OKqJw8xWMzet8RiMxbNPH2rAjmlDg0gbEhoJ6DmIDd/LmUlau8QD9UaYvafyeja4rXYvZvezIu5mHcEOA9n3DgCAfRQnzu82N/rLXjofq/2v8AtT6vD8byXf8AKVqde+HzT1zDc2jg7G5OPYsbNYe+GYb9Q4u5i07eY+xdTwS4ZScPKloz5ye/YuhpmhYOWuxw7Oa09S7bpzbjceXQKsmi+K2uNJhkWOy8k9RnQVbf3aLb0G/vNH8UhSpX8TrhAwWNHgzcvvmO9s3f4As32VZ6IavH0vOn1WjWslP8/KUgeKD9ZvLfy1f86xVh4SYihn+JGEw2VhM9K1O5k0YeW8wDHHuCCOoHZd5xR45Q620Tb063TklJ9h8bvbfSg8N5Hh3blG++yjXh7qKLS2tMXqCao+0yjKZDE1waX7tLe5+ar8pav9nzj1T8ZyXf8pWhzPh+4fXKj2Ua97GTEe5LFbe/lPqWvJBHw6KquWqXtN6nuUW2XR3sXdkhbPCS0iSN5aHtPcdRuFPOR8TkLqMox2lJ2WyNo3WLTTG0+pAG5+XT5qvGSyEt7I2b9yT2lm1M+eZ5PVz3uLnH7SVX5U1f7M849U/GMn3/AMr76By0me0RhczMAJbtGKaTbtzuaC78u6pTxV/XM1N/Olj84VMWmvEVpjBadx2Gg05lHRUa0ddrvbRbuDWgb9/PZQXrDMQ53VWVzUEMkUV63LYZG4guaHOJAJHTfqo+VtW+zPOPVM6vk/ufn0WB4T8F9E6k4eYfOZOPIG5bhL5THaLW787h0G3ToAuoPh64dEEGHKdf4Yf9FXPCcWdd4HEVsRis++tSrMLYoRBCeQbk7buaT5+q2FbjfxGMzHTapf7JpBePo0G5G/UdGf5qk9GNVj6M+XqmNWyc/UjzXSqwsr144I+jI2BjfkBsF583kq2IxFzKXX8lanA+eV3o1rST/gocZ4ldE9n4zOD05Y4j/wC65TjLxwwmqNB2sBgamUrzXJI2yyWYmsb7IO5nAEOJJPK0fIlc/l7U729jUvGp5SeGJCHYWZHWet2tcQchmsh7x7hr5X9T8hv9gX94K9b0drqreILbGJv/AHVvryP2e36wHD61seDeocDpjX1PPZ5lmStTZI5jYGB7vaFpa3oSOg5ifmAvJxPzODzuu8pmcAZvoV6UThssYY5r3Ac4IBP425+tROgalH0ZT8Ryvfhe6lYht1Ibdd4khmjbJG8dnNcNwfsK1utv+TM5/N1j825Qpwf41YLG6Bx2IzFbMT3aDDA51ak6VpYCeTqP3uw+pdHqbjLpW7pjKVYqOoQ+elNGwvxcgbu5hA3PkOvdcp0bPxNpwauS0Z7LzwrhUquA58TD2cQD9quEzgLw1dXDTibfMRvz/T5dwf6235FTmOYMc1wDt2kEe6VMmR49cT6TWxWsdj6BePuZlxkrHbD05nbH7FE6Rno44U8kxncvP84cZxh0pV0Zr69gaViSeoxkcsRkIL2te3flcQACQd+vpsrR+HDI2clwfw0tt7nyQiWuHO7lkcjmt+xoA+pVcwGG1dxX1nafFK25kpyJbdmw8MZEzo0OIH4oAAAaPT13VsaYxvCzh1So/Rsler0IeVxp1HTSSPJ5nPIaNm7uJPUgDdeSrLY1OJGFVTaqep1jGomnbidzpNS5vGacwtjM5i02tSrt5pJCN9tyAAAOpJJAAC82mtVad1LWFjBZmnfZ5iKUFzfgW9wfmFULjBxTy/EG62uYzQxFd5dDTD9y53bnkPm7uNuw69+64GtNPVsNs1ZpYJ2dWyRPLHt+RHUL77J9Aa8XKxVjYmxiT1cYiPHx/qXzuP0iijGth03p5P0VB3WVTbR3HbXmBLYrlyPN1Wj8Hdb90A9BIOv27qfOFnF7Ha5lbWjwOYpWCS0v+jumrA/yrRs3+kAvnNT6L6hp1M4mJTE0R1xP/nFp5XV8tmZ2aZtPZKTUWG9llfOtQREQEREBERAREQFyuR4c6EyOQsZC9pTFWbVh5kmlkgDnPce5PxXVIumFjYmDN8OqYnwmyleHRXFqov8A24XNaH4V4TFzZPLaY05TpwN5pJpqrAB+TqT5DuSo20lqvgTndSWcVLo/C4qFp2qXLtONkdj133H3M+gd3+B6Kdc/iMdnsRYxOWqR26VlnJLE/sR/kR3BHYqu+rvDZkmW5JdK5qrNWcd2QZDmY9g9OdoId89gu/v+an6lXOVPdsHuRyh5vE5heHeOw2Mk03BiK2VfY2dHQc334OVxLntadh73LsfiuR8NWIqZjinWrXcdWvU2VJ5J454RIwAAAEgg/jFvVbrHeHHXEtgMtXMJTi/GkE75D9TQ0b/WQp64S8NMPw9x0rKr3XMjZA+lXZG7OeB2a1v4rRv28/MnptHv2ZmLe0q5yn3fC7scnJeIzS+msXwlyVvHafxVOyyWDllgqMY8bytB94DdV44SYjH57iRhMNlYDPStTuZNGHFpcORx7t2I6gK3nGTS1/WWgLun8ZNWhszyROa+w5wYA17XHcgE9h6KJuGnArVemdeYjP3sjhZq1KYySMhllLyCxzem7AN+vqqe9Y/fnnKfY4fdjkkGDgdwzikEn6XnSEHcCS5MR9nP1XV4vRmksXXFehpvEwR9+lVhJ+ZI3P1rfDt1RROYxZ41TzkjCojhENe3B4Rv3uHx4+VZn+io5xSYyPiTqSONjGMbk52ta1oAA5z0ACvme3RVq1rwB1dm9X5jMVcng2QXbks8bZZZQ4Nc4kA7Rkb9fVV9tid6eadinsd/wPy2kqvCvAR38ngobja5ErZp4myA87u4J39O67X9MGiP3b07/eof9VXM+GzWp/6tp7+2m/20/U160/dXT39rN/tqs11T1p2aexaGvBjbNdlivDUlhkaHMkja1zXA9iCOhCqV4o86zKcS34usWirh4G1w1nRvtXe/Ifn1a3+irU6OxljCaOxWHmdFJYpUYoHFhPI5zGAHYkb7bj0Vc8t4fNe5LJWslazGnnWbcz55T7ebbmcS4/sfqSo26u02Y7HLaD4L6t1jpuDP42zi61Sd72xi1K9r3cri0nZrHDbcHz8l8OIvCPVOhcJHmMrYxtiq+YQk1JHvcwkEgnmY3odtt/Uq3uj8PDp7S2MwcBBZRqsg5v2xa0Au+ZO5+teLiRpxmrtEZTT73sY+1DtDI7syUHmY49D0DgN+nbdJrq7S0K7+EjUX0DXNvT88m0OVrl0YJ/Zot3Db5sL/ALArKa2A/SZm/wCbrH5tyr7pXgNrzAamxucrZbAGSjZZOAJ5hzBpBLfwXYjcfWrFagqS5LA5HHwua2S1VlhY5+/KC5haCfh1UXumIiH5+Vus0O/m5v8Airkcf9GHWHDqQ1IfaZTGt+lUwB1fs334x/Gb2+Iaofh8OOtGSsd+i2ny1pB/DzeX/iVp2AtjaDt0HVLm5Q3hzqm1o7WGP1BU5ntgfyzxA/hYXdHs+sdR8QD5K9mLvVMpja2QoStnq2YmzQyN7Oa4bg/Yq9a+8PmYymsMjktOX8RWxtuX20cNiSRro3O6vHusI5ebcjr2O3kpQ4H6W1Ro3S8mA1Dcx9uCGXmpOrSPcWMd1cw8zR0Duo7/AHxHTYIOI8QvCGHM0ZtT6WoBmYi96zVrs6XG+ZDR+yDv0++7Hrso70b4fNZ5jlnzUtbAVneUp9tPt/EadvtcD8FbogHuEAA8l9LlOlmo5TKxlsOqN3CZ3zEdnYysbRstjYvtKo/xFWj+BGg8FySW6kubst6+0vP3Zv8ACNoDft3Un1K1erXZXrQRQQsGzY42hrWj4AdAvsixM3nsznKtvMVzVPjLQwcthYEWw6YgREXldhERAREQEREBERAREQEREBERAREQEREBERAREQfC/Ma9OewGuf7KNz+Rvd2w32CgLhFirvFmO9rTVWpMpvHd9jUx9G46GKuGhrxuG+fvAfEDc779LBuCi/8A4RjGais5bR2qsppuO5MJbVOBjZIHnfc8od97v9e3l06LX03NYWDg4tE1bFc2tVa/DjG7fF+3weDN4NdeJRVEXpi94/E/44zBU7fFLixrOpnc1lqtDBSmtRq1LToWxn2j2B/u9z9z5uv7Yei5K1rDUV7w/Zutey1uSxiM1DUhutlc2V8R8nPB3O3Xr6EKZNR8KTZ1Ze1LpnVF/TV3JR+zyAgibKyceZ2dtyuPr69Rt13+Vzgvgn8MXaGpX7NeKS023Pcc1r5ZZB5nsOwA+AC3sLV8hTVRMz+mJw7Rb9mz+/q338L362dVksxMVREb7Vb78b8OSJ62r87ktW8OMFkblqDK4rJClko2zOH0hhfCYpXAH3g5hPU79ifNbrPaThPiHpaR/RvUTcZfovuShuTkDhIfauIBB91vujYBSNneE2MyetdP6rF+atdxAgEjWRgtteyILS7r0Pl08tvRbW/oOG1xXpa/GSljsVKZqiqIwWPaQ8bl2+/4/wCRca9ZykTFWD+n/jqiYt/OZmYtz3dkbl6cjjWmK9/6o6+qyEuLups0eJuRzuIyNuPGaPmo15oI5XBkznSbv3APXru07hdtxj1Llcxq/SGisJmJ8Rj8/GLE9+u7lkdGezWv8ug8u5c3y6H2wcB9Ny4nMRZW5YyGUyU75xkXAsfC53XowO5Ts7c9fVbPKcIsVl9DYfT2TydyS5hW7UMrCBHYiAIIHcg9mj+iD0PVTVqGmXwbTfYvTfZ7aYtV42qvO/fv4IjK5u1e792/j48PC8WhpuI3DzGaf4WZixjcvqETUY5LsUjsm8udLyNb7x82+6Dt233W48OOHZV4e0c4+/krdzLV2SWPpVp0rWlrngcgd973/wAFtK+h8pNoPM6Xzurr2YdkmPjbbngY18DHNDeUAd+xPX1K3mgtPM0ppHHaeitPtMoxezbK9oaXDcnqB81lZjUJqydWBOJtTNd7798W8fHqe3Cy1seMSKbRbzv6N6iIsRoiIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAmyIgbLGwWUQNgmyIgbLGwWUQY2CyBsiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIg//2Q==";</script>
+<script>
+
+const { useState, useEffect, useRef } = React;
+
+const MONTHS=['Marzo','Abril','Mayo','Jun (curso)'];
+const MC={prom:'#1B4FD8',pct:'#378ADD',rec:'#1D9E75',gest:'#534AB7'};
+const TN={prom:'Promesas: indicador principal. Caída sostenida desde mayo.',pct:'% cumplimiento: 3 meses a la baja. TIGO en estado crítico (46%).',rec:'Recaudo en Balboas. Mayo cerró B/.440K por debajo de abril.',gest:'Gestiones: volumen de contactos. Base para el flujo de promesas.'};
+const CART=[
+  {id:'ba',n:'Banistmo Activa',prom:[4277,4813,3863,0],pct:[92,96,108,0],rec:[1.24,1.27,1.02,0],gest:[93605,95787,105246,0]},
+  {id:'br',n:'Ban. Recovery',  prom:[1200,1100,980,0], pct:[88,85,79,0], rec:[0.38,0.36,0.31,0],gest:[31000,31000,31000,0]},
+  {id:'su',n:'SURA',           prom:[3200,3500,2900,0],pct:[95,98,81,0], rec:[1.55,1.60,1.40,0],gest:[21000,22000,19500,0]},
+  {id:'ti',n:'TIGO',           prom:[2800,2600,2100,0],pct:[90,87,46,0], rec:[0.72,0.70,0.48,0],gest:[18000,17500,16000,0]},
+  {id:'kr',n:'KrediYa',        prom:[1100,1200,1100,0],pct:[85,90,84,0], rec:[0.11,0.12,0.10,0],gest:[4500,4700,4300,0]},
+  {id:'so',n:'Solve',          prom:[900,950,1100,0],  pct:[88,91,150,0],rec:[0.04,0.05,0.04,0],gest:[1500,1600,1800,0]},
+  {id:'ca',n:'CA Activa',      prom:[600,650,580,0],   pct:[82,88,77,0], rec:[0.25,0.28,0.21,0],gest:[4000,4200,3800,0]},
+  {id:'bl',n:'BLH',            prom:[50,55,48,0],      pct:[75,80,68,0], rec:[0.03,0.03,0.02,0],gest:[500,520,480,0]},
+];
+const TOT={prom:[14127,14868,12671,0],pct:[90,91,81,0],rec:[3.99,4.10,3.66,0],gest:[174105,177307,182126,0]};
+const PAL=['#1B4FD8','#1D9E75','#E24B4A','#D97706','#534AB7','#D85A30','#378ADD','#D4537E'];
+const PEND=[
+  {id:'sura',cartera:'SURA',            sup:'Samuel De La Oliva',ul:'ayer 03 jun',d:1,u:'alta'},
+  {id:'tigo',cartera:'TIGO',            sup:'Yinorís Ramos',     ul:'02 jun',    d:2,u:'alta'},
+  {id:'ba',  cartera:'Banistmo Activa', sup:'Kevin Martínez',    ul:'ayer 03 jun',d:1,u:'media'},
+  {id:'kred',cartera:'KrediYa',         sup:'Marisely Soto',     ul:'ayer 03 jun',d:1,u:'media'},
+  {id:'br',  cartera:'Ban. Recovery',   sup:'Angie Herrera',     ul:'ayer 03 jun',d:1,u:'media'},
+  {id:'bac', cartera:'BAC',             sup:'Tayreth Oyaga',     ul:'ayer 03 jun',d:1,u:'normal'},
+  {id:'ca',  cartera:'CA Activa',       sup:'Rodolfo Miller',    ul:'ayer 03 jun',d:1,u:'normal'},
+  {id:'blh', cartera:'BLH',             sup:'Elvira Duncan',     ul:'ayer 03 jun',d:1,u:'normal'},
+];
+const ALDIA=[
+  {c:'Banistmo Activa (Prod.)',s:'Katherine Quintero',h:'hoy 08:21'},
+  {c:'Solve',                  s:'Darlenys Correa',   h:'hoy 07:55'},
+  {c:'Rodelag',                s:'Erishka Samaniego', h:'hoy 08:03'},
+  {c:'Global Bank',            s:'Luis García',       h:'hoy 08:30'},
+];
+const SAB=[
+  {dt:'7 jun 2026',al:null,as:[{n:'Susana Lore',t:'Banistmo Activa'},{n:'Allison González',t:'Banistmo Activa'},{n:'Najhaira Alvarado',t:'SURA'},{n:'Yinorís Ramos',t:'TIGO'}]},
+  {dt:'14 jun 2026',al:'6 ausencias — cobertura reducida SURA y TIGO.',as:[{n:'Madelín Oses',t:'Ban. Recovery'},{n:'Zury Andrade',t:'SURA'},{n:'Rodolfo Miller',t:'SURA'},{n:'Yanitza Torres',t:'TIGO'},{n:'Darlenys Correa',t:'Solve'},{n:'Marisely Soto',t:'KrediYa'}]},
+  {dt:'21 jun 2026',al:'8 ausencias — sábado más crítico del mes.',as:[{n:'Katherine Quintero',t:'Banistmo Activa'},{n:'Angie Herrera',t:'Ban. Recovery'},{n:'Yulyssa López',t:'Ban. Recovery'},{n:'Kristel Pérez',t:'SURA'},{n:'Aileen Espinosa',t:'SURA'},{n:'Jhon Puga',t:'TIGO'},{n:'Erishka Samaniego',t:'Rodelag'}]},
+  {dt:'28 jun 2026',al:null,as:[{n:'Natalie Herrera',t:'Banistmo Activa'},{n:'Yanaris Caballero',t:'Banistmo Activa'},{n:'Pebbles Valderrama',t:'SURA'},{n:'Melany Pérez',t:'SURA'},{n:'Danna Rivas',t:'Solve'},{n:'Elvira Duncan',t:'BLH'}]},
+];
+const TELE={rem:['Liliana M.','Miriam I.','Yeznyha E.','César S.','Ever V.','Angel N.'],sit:['Andrew R.','Oris R.','Kevin L.','Victor I.','Nicolle C.','Luis G.','Nicolle U.']};
+const UC={alta:'var(--sp-danger)',media:'var(--sp-warning)',normal:'var(--sp-text-ter)'};
+
+const fB=v=>'B/.'+Math.round(v).toLocaleString('es-PA');
+const fM=v=>'B/.'+v.toFixed(2)+'M';
+const fN=v=>Math.round(v).toLocaleString('es-PA');
+const ini=n=>n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const calcN=(m,mo,p)=>p>0?Math.ceil(m/Math.max(mo,1)/(p/100)):0;
+const calcMTD=(nec,dh,da)=>dh>0?Math.round(nec*(da/dh)):0;
+function trCalc(arr){const r=arr.filter((v,i)=>!(i===3&&v===0));if(r.length<2)return{d:'eq',p:0};const d=(r[r.length-1]-r[r.length-2])/Math.max(r[r.length-2],.001)*100;if(d>2)return{d:'up',p:d};if(d<-2)return{d:'dn',p:d};return{d:'eq',p:d};}
+function sBdg(arr,m){const r=arr.filter((v,i)=>!(i===3&&v===0));if(r.length<2)return'neutral';const last=r[r.length-1],prev=r[r.length-2];const d=(last-prev)/Math.max(prev,.001)*100;if(m==='pct'){if(last>=95)return'ok';if(last>=80)return'warn';return'err';}if(d>5)return'ok';if(d>-5)return'neutral';return'warn';}
+function fCell(v,i,m){if(i===3&&v===0)return null;if(m==='rec')return fM(v);if(m==='pct')return Math.round(v)+'%';return fN(v);}
+
+function SpearLance(){return(React.createElement('svg',{width:56,height:24,viewBox:'0 0 80 34',fill:'none'},React.createElement('line',{x1:0,y1:17,x2:56,y2:17,stroke:'#fff',strokeWidth:3,strokeLinecap:'round'}),React.createElement('polygon',{points:'56,7 80,17 56,27',fill:'#fff'}),React.createElement('line',{x1:50,y1:7,x2:50,y2:27,stroke:'rgba(255,255,255,.4)',strokeWidth:2.5,strokeLinecap:'round'})));}
+
+function Topbar(){
+  return React.createElement('header',{style:{background:'var(--sp-navy)',padding:'0 20px',display:'flex',alignItems:'center',justifyContent:'space-between',height:54,flexShrink:0}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12}},
+      React.createElement('img',{src:window.SPEAR_LOGO,alt:'Spear Contact',style:{height:26,filter:'brightness(0) invert(1)',objectFit:'contain'},onError:e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}),
+      React.createElement('div',{style:{display:'none',alignItems:'center'}},React.createElement(SpearLance)),
+      React.createElement('div',{style:{width:1,height:24,background:'rgba(255,255,255,.18)'}}),
+      React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'.01em',lineHeight:1.1}},'Panel Spear'),
+        React.createElement('div',{style:{fontSize:10,color:'rgba(255,255,255,.4)',letterSpacing:'.06em',textTransform:'uppercase',fontWeight:500}},'Gestión Operativa · Cobranzas'))),
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12}},
+      React.createElement('span',{style:{fontSize:11,color:'rgba(255,255,255,.5)',background:'rgba(255,255,255,.08)',padding:'4px 10px',borderRadius:20,border:'1px solid rgba(255,255,255,.1)'}},'Jue 4 jun 2026 · Día 4 / 30'),
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
+        React.createElement('div',{style:{width:30,height:30,borderRadius:'50%',background:'var(--sp-blue)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}},'AG'),
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.85)',lineHeight:1.2}},'Angel G.'),
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',fontWeight:500}},'Gerente')))));
+}
+
+const NTABS=[{id:'dashboard',l:'Dashboard'},{id:'productividad',l:'Productividad'},{id:'seguimiento',l:'Seguimiento'},{id:'logistica',l:'Logística'},{id:'parametros',l:'Parámetros'},{id:'pendientes',l:'Pendientes',badge:true}];
+function Navigation({active,onChange,pc}){
+  return React.createElement('nav',{style:{background:'var(--sp-navy-mid)',padding:'0 20px',display:'flex',alignItems:'center',borderBottom:'2px solid var(--sp-navy-light)',flexShrink:0,overflowX:'auto'}},
+    NTABS.map(tab=>{const on=active===tab.id;
+      return React.createElement('button',{key:tab.id,onClick:()=>onChange(tab.id),style:{fontSize:12,fontWeight:600,color:on?'#fff':'rgba(255,255,255,.4)',padding:'10px 14px',cursor:'pointer',border:'none',background:'transparent',borderBottom:on?'2px solid var(--sp-blue)':'2px solid transparent',marginBottom:-2,fontFamily:'inherit',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}},
+        tab.l,
+        tab.badge&&pc>0&&React.createElement('span',{style:{width:17,height:17,borderRadius:'50%',background:'var(--sp-danger)',color:'#fff',fontSize:9,fontWeight:700,display:'inline-flex',alignItems:'center',justifyContent:'center'}},pc));
+    }));
+}
+
+function KCard({label,value,vColor,prog,pColor,meta,accent}){
+  return React.createElement('div',{style:{background:'var(--sp-surface)',border:'1px solid var(--sp-border)',borderRadius:'var(--r)',padding:'12px 14px',boxShadow:'var(--shadow-sm)',position:'relative',overflow:'hidden'}},
+    React.createElement('div',{style:{position:'absolute',top:0,left:0,right:0,height:3,background:accent}}),
+    React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em',marginBottom:5}},label),
+    React.createElement('div',{style:{fontSize:21,fontWeight:700,color:vColor||'var(--sp-text)',lineHeight:1.1}},value),
+    React.createElement('div',{className:'progress-wrap'},React.createElement('div',{className:'progress-fill',style:{background:pColor,width:Math.min(prog,100)+'%'}})),
+    meta&&React.createElement('div',{style:{fontSize:11,marginTop:4},dangerouslySetInnerHTML:{__html:meta}}));
+}
+function KPIRow(){
+  return React.createElement('div',{className:'kpi-grid'},
+    React.createElement(KCard,{label:"Promesas · mayo cierre",value:"13,695",accent:"var(--sp-blue)",prog:81,pColor:"var(--sp-blue)",meta:'<span class="t-dn">↓ 3.3%</span> vs abril · <b>81%</b> meta'}),
+    React.createElement(KCard,{label:"% Cumplimiento",value:"81%",accent:"#378ADD",prog:81,pColor:"#378ADD",meta:'<span class="t-dn">↓ 3 meses consecutivos</span>'}),
+    React.createElement(KCard,{label:"Recaudo · mayo cierre",value:"B/.3.66M",accent:"var(--sp-success)",prog:83,pColor:"var(--sp-success)",meta:'<span class="t-dn">↓ 10.7%</span> vs abril · <b>83%</b> meta'}),
+    React.createElement(KCard,{label:"Sin carga hoy · junio",value:"8 / 13",vColor:"var(--sp-danger)",accent:"var(--sp-danger)",prog:38,pColor:"var(--sp-danger)",meta:'<span style="color:var(--sp-danger);font-weight:600">8 carteras pendientes</span>'}));
+}
+
+const ML=[{id:'prom',l:'Promesas'},{id:'pct',l:'% vs meta'},{id:'rec',l:'Recaudo'},{id:'gest',l:'Gestiones'}];
+function TrendChart(){
+  const cv=useRef(null),ch=useRef(null);
+  const [met,setMet]=useState('prom'),[vw,setVw]=useState('all'),[fi,setFi]=useState(null);
+  useEffect(()=>{
+    if(!cv.current)return;
+    const ctx=cv.current.getContext('2d');
+    if(ch.current)ch.current.destroy();
+    const col=MC[met],gc='rgba(13,27,46,.05)',tc='#8A97A8';
+    let ds=vw==='all'
+      ?[{label:'Consolidado',data:TOT[met].map((v,i)=>i===3&&v===0?null:v),borderColor:col,backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,pointBackgroundColor:col,tension:.35,spanGaps:false}]
+      :CART.map((c,i)=>({label:c.n,data:c[met].map((v,j)=>j===3&&v===0?null:v),borderColor:fi===null||fi===i?PAL[i%PAL.length]:'rgba(180,178,169,.18)',backgroundColor:'transparent',borderWidth:fi===i?2.5:1.2,pointRadius:fi===null||fi===i?3:1,pointBackgroundColor:PAL[i%PAL.length],tension:.35,spanGaps:false}));
+    ch.current=new Chart(ctx,{type:'line',data:{labels:MONTHS,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:tc,bodyColor:'#0D1B2E',borderColor:'#E2E7EF',borderWidth:1,callbacks:{label:c=>{const v=c.parsed.y;if(v===null)return null;if(met==='rec')return ` ${c.dataset.label}: ${fM(v)}`;if(met==='pct')return ` ${c.dataset.label}: ${Math.round(v)}%`;return ` ${c.dataset.label}: ${fN(v)}`;}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:v=>{if(met==='rec')return 'B/.'+v.toFixed(1)+'M';if(met==='pct')return v+'%';return v>=1000?(v/1000).toFixed(0)+'K':v;}}}}}});
+    return()=>ch.current&&ch.current.destroy();
+  },[met,vw,fi]);
+
+  function TrI({arr}){const{d,p}=trCalc(arr);if(d==='up')return React.createElement('span',{className:'t-up'},'↑ '+Math.abs(p).toFixed(1)+'%');if(d==='dn')return React.createElement('span',{className:'t-dn'},'↓ '+Math.abs(p).toFixed(1)+'%');return React.createElement('span',{className:'t-eq'},'→ estable');}
+  function SB({arr,m}){const s=sBdg(arr,m);const lb={ok:'↑ Sobre meta',warn:'⚠ En riesgo',err:'↓ Crítico',neutral:'Estable'};return React.createElement('span',{className:'bdg bdg-'+s},lb[s]);}
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'card-head'},
+        React.createElement('div',null,
+          React.createElement('div',{className:'card-title'},'Evolución mensual consolidada'),
+          React.createElement('div',{style:{display:'flex',gap:4,marginTop:5}},
+            ['Mar','Abr','May'].map(m=>React.createElement('span',{key:m,style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:'var(--sp-bg)',color:'var(--sp-text-ter)',border:'1px solid var(--sp-border)',fontWeight:500}},m)),
+            React.createElement('span',{style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:'var(--sp-blue-light)',color:'var(--sp-blue)',border:'1px solid var(--sp-blue-border)',fontWeight:600}},'Jun ●'))),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
+          React.createElement('div',{style:{display:'flex',gap:3}},ML.map(m=>React.createElement('button',{key:m.id,className:'mtab'+(met===m.id?' active':''),onClick:()=>{setMet(m.id);setFi(null);}},m.l))),
+          React.createElement('div',{style:{display:'flex',gap:2,background:'var(--sp-bg)',borderRadius:20,padding:2}},
+            [{id:'all',l:'Total'},{id:'focus',l:'Por cartera'}].map(v=>React.createElement('button',{key:v.id,onClick:()=>{setVw(v.id);setFi(null);},style:{fontSize:11,padding:'3px 10px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',border:vw===v.id?'1px solid var(--sp-border)':'none',background:vw===v.id?'var(--sp-surface)':'transparent',color:vw===v.id?'var(--sp-text)':'var(--sp-text-sec)',fontWeight:vw===v.id?600:400}},v.l))))),
+      React.createElement('div',{style:{padding:'10px 16px 6px'}},
+        React.createElement('div',{className:'note-bar'},TN[met]),
+        React.createElement('div',{style:{height:200,position:'relative'}},React.createElement('canvas',{ref:cv})),
+        vw==='focus'&&React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',textAlign:'center',marginTop:4}},'Clic en cartera para enfocarla'),
+        React.createElement('div',{style:{display:'flex',gap:7,flexWrap:'wrap',marginTop:8,paddingTop:7,borderTop:'1px solid var(--sp-border)'}},
+          vw==='all'
+            ?React.createElement('span',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--sp-text-sec)',fontWeight:500}},React.createElement('span',{style:{width:10,height:10,borderRadius:'50%',background:MC[met],display:'inline-block'}}),' Total consolidado')
+            :CART.map((c,i)=>React.createElement('span',{key:c.id,onClick:()=>setFi(p=>p===i?null:i),style:{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--sp-text-sec)',cursor:'pointer',padding:'2px 7px',borderRadius:20,fontWeight:fi===i?600:400,background:fi===i?'var(--sp-bg)':'transparent',userSelect:'none'}},
+              React.createElement('span',{style:{width:8,height:8,borderRadius:'50%',background:PAL[i%PAL.length],display:'inline-block',opacity:fi===null||fi===i?1:.2}}),c.n))))),
+    React.createElement('div',{className:'sl'},'Detalle comparativo por cartera'),
+    React.createElement('div',{className:'card'},
+      React.createElement('table',{className:'sp-table',style:{tableLayout:'fixed'}},
+        React.createElement('thead',null,React.createElement('tr',null,
+          React.createElement('th',{style:{width:'20%'}},'Cartera'),
+          React.createElement('th',{style:{width:'11%'}},'Marzo'),React.createElement('th',{style:{width:'11%'}},'Abril'),
+          React.createElement('th',{style:{width:'12%'}},'Mayo'),React.createElement('th',{style:{width:'12%'}},'Junio'),
+          React.createElement('th',{style:{width:'16%'}},'Tendencia'),React.createElement('th',{style:{width:'18%'}},'Estado'))),
+        React.createElement('tbody',null,
+          [...CART.map(c=>React.createElement('tr',{key:c.id},
+            React.createElement('td',{style:{fontWeight:600}},c.n),
+            ...[0,1,2,3].map(i=>React.createElement('td',{key:i},fCell(c[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'))),
+            React.createElement('td',null,React.createElement(TrI,{arr:c[met]})),
+            React.createElement('td',null,React.createElement(SB,{arr:c[met],m:met})))),
+          React.createElement('tr',{className:'row-total'},
+            React.createElement('td',null,'Total general'),
+            ...[0,1,2,3].map(i=>React.createElement('td',{key:i},fCell(TOT[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'))),
+            React.createElement('td',null,React.createElement(TrI,{arr:TOT[met]})),
+            React.createElement('td',null,React.createElement(SB,{arr:TOT[met],m:met})))]))));
+}
+
+function PendingPanel({onCC}){
+  const [not,setNot]=useState({});
+  const handle=id=>{const nx={...not,[id]:true};setNot(nx);onCC&&onCC(PEND.filter(p=>!nx[p.id]).length);};
+  const rem=PEND.filter(p=>!not[p.id]).length;
+  return React.createElement('div',null,
+    React.createElement('div',{className:'sl'},'Pendientes de actualización · hoy 4 jun'),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'pend-head'},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
+          React.createElement('i',{className:'ti ti-alert-circle',style:{fontSize:16,color:'var(--sp-danger)'}}),
+          React.createElement('span',{style:{fontSize:12,fontWeight:700,color:'var(--sp-danger)'}},rem+' carteras sin registrar hoy'),
+          React.createElement('span',{className:'bdg bdg-err'},'Requiere acción')),
+        React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'Última actualización: 08:42')),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10,padding:'6px 14px',background:'var(--sp-bg)',borderBottom:'1px solid var(--sp-border)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',color:'var(--sp-text-ter)'}},
+        React.createElement('span'),React.createElement('span',null,'Cartera'),React.createElement('span',null,'Supervisor'),React.createElement('span',{style:{textAlign:'right'}},'Acción')),
+      ...PEND.map(p=>React.createElement('div',{key:p.id,className:'pend-row'+(not[p.id]?' notified':''),style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10,opacity:not[p.id]?.55:1}},
+        React.createElement('div',{style:{width:8,height:8,borderRadius:'50%',background:UC[p.u],alignSelf:'center'}}),
+        React.createElement('div',{style:{fontWeight:600,fontSize:12}},p.cartera),
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:12,fontWeight:600,color:'var(--sp-text)'}},p.sup),
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)'}},'Últ. carga: '+p.ul+' · ',React.createElement('span',{style:{color:UC[p.u],fontWeight:600}},p.d===1?'1 día sin datos':p.d+' días sin datos'))),
+        React.createElement('button',{className:'btn-notify',disabled:not[p.id],onClick:()=>handle(p.id)},
+          not[p.id]?'✓ Notificado':React.createElement(React.Fragment,null,React.createElement('i',{className:'ti ti-send',style:{fontSize:11,marginRight:3}}),'Notificar')))),
+      React.createElement('div',{className:'pend-ok-section'},'✓ Al día'),
+      ...ALDIA.map((item,i)=>React.createElement('div',{key:i,className:'pend-ok-row',style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10}},
+        React.createElement('div',{style:{width:8,height:8,borderRadius:'50%',background:'var(--sp-success)'}}),
+        React.createElement('div',{style:{fontSize:12,fontWeight:600,color:'var(--sp-success)'}},item.c),
+        React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)'}},item.s+' · '+item.h),
+        React.createElement('span',{className:'bdg bdg-ok'},'✓ Actualizado')))));
+}
+
+function LogisticsPanel(){
+  const [si,setSi]=useState(0);
+  const sab=SAB[si];
+  return React.createElement('div',{className:'two-col'},
+    React.createElement('div',{className:'card',style:{marginBottom:0}},
+      React.createElement('div',{className:'card-head'},
+        React.createElement('div',null,React.createElement('div',{className:'card-title'},'Sábados libres'),React.createElement('div',{className:'card-sub'},sab.dt)),
+        React.createElement('div',{style:{display:'flex',gap:4}},
+          React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},onClick:()=>setSi(i=>Math.max(0,i-1)),disabled:si===0},'←'),
+          React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},onClick:()=>setSi(i=>Math.min(3,i+1)),disabled:si===3},'→'))),
+      React.createElement('div',{style:{padding:'10px 14px'}},
+        sab.al&&React.createElement('div',{className:'alert-bar warn'},React.createElement('i',{className:'ti ti-alert-triangle',style:{fontSize:13,flexShrink:0}}),sab.al),
+        React.createElement('div',{style:{background:'var(--sp-danger-bg)',border:'1px solid var(--sp-danger-bdr)',borderRadius:'var(--r-sm)',padding:'8px 12px',display:'flex',alignItems:'center',gap:10,marginBottom:8}},
+          React.createElement('i',{className:'ti ti-home',style:{fontSize:17,color:'var(--sp-danger)'}}),
+          React.createElement('span',{style:{fontSize:22,fontWeight:700,color:'var(--sp-danger)'}},sab.as.length),
+          React.createElement('span',{style:{fontSize:11,color:'var(--sp-danger)',fontWeight:600}},sab.as.length===1?'asesor no estará':'asesores no estarán')),
+        sab.as.length===0
+          ?React.createElement('div',{style:{textAlign:'center',padding:'12px 0',fontSize:12,color:'var(--sp-text-ter)'}},'Sin ausencias')
+          :sab.as.map((a,i)=>React.createElement('div',{key:i,className:'person-row'},
+            React.createElement('div',{className:'person-av'},ini(a.n)),
+            React.createElement('div',null,React.createElement('div',{className:'person-name'},a.n),React.createElement('div',{className:'person-tag'},a.t)))))),
+    React.createElement('div',{className:'card',style:{marginBottom:0}},
+      React.createElement('div',{className:'card-head'},
+        React.createElement('div',null,React.createElement('div',{className:'card-title'},'Teletrabajo'),React.createElement('div',{className:'card-sub'},'Semana 2–6 jun 2026')),
+        React.createElement('div',{style:{display:'flex',gap:6}},
+          React.createElement('div',{style:{background:'var(--sp-success-bg)',borderRadius:'var(--r-sm)',padding:'3px 10px',textAlign:'center'}},React.createElement('div',{style:{fontSize:16,fontWeight:700,color:'var(--sp-success)'}},TELE.rem.length),React.createElement('div',{style:{fontSize:10,color:'var(--sp-success)',fontWeight:600}},'remoto')),
+          React.createElement('div',{style:{background:'var(--sp-bg)',borderRadius:'var(--r-sm)',padding:'3px 10px',textAlign:'center'}},React.createElement('div',{style:{fontSize:16,fontWeight:700,color:'var(--sp-text)'}},TELE.sit.length),React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:600}},'sitio')))),
+      React.createElement('div',{style:{padding:'10px 14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',padding:'4px 8px',borderRadius:'var(--r-sm)',marginBottom:4,textAlign:'center',background:'var(--sp-success-bg)',color:'var(--sp-success)'}},'Remoto'),
+          TELE.rem.map((n,i)=>React.createElement('div',{key:i,style:{fontSize:11,padding:'4px 7px',background:'var(--sp-bg)',borderRadius:'var(--r-sm)',marginBottom:2,fontWeight:500}},n))),
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',padding:'4px 8px',borderRadius:'var(--r-sm)',marginBottom:4,textAlign:'center',background:'var(--sp-bg)',color:'var(--sp-text-sec)'}},'En sitio'),
+          TELE.sit.map((n,i)=>React.createElement('div',{key:i,style:{fontSize:11,padding:'4px 7px',background:'var(--sp-bg)',borderRadius:'var(--r-sm)',marginBottom:2,fontWeight:500}},n))))));
+}
+
+function DashboardPage({onPCC}){
+  const [af,setAf]=useState('Todas');
+  const CHIPS=['Todas','Banistmo A.','SURA','TIGO','KrediYa','Solve','BLH','BAC'];
+  return React.createElement('div',null,
+    React.createElement('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14,alignItems:'center'}},
+      React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)',fontWeight:600,marginRight:2}},'Cartera:'),
+      CHIPS.map(f=>React.createElement('button',{key:f,className:'chip'+(af===f?' active':''),onClick:()=>setAf(f)},f))),
+    React.createElement(KPIRow),
+    React.createElement(PendingPanel,{onCC:onPCC}),
+    React.createElement('div',{className:'sl',style:{marginTop:4}},'Tendencia de productividad · Marzo – Junio 2026'),
+    React.createElement(TrendChart),
+    React.createElement('div',{className:'sl',style:{marginTop:4}},'Logística operativa'),
+    React.createElement(LogisticsPanel),
+    React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',background:'var(--sp-surface)',border:'1px solid var(--sp-border)',borderRadius:'var(--r-sm)',padding:'8px 12px',display:'flex',gap:8,alignItems:'center',marginTop:4}},
+      React.createElement('img',{src:window.SPEAR_LOGO,alt:'',style:{height:14,opacity:.4}}),
+      'Panel Spear © 2026 · Spear Contact · Cobranzas y Gestión Operativa · Panamá'));
+}
+
+const WDAYS=[{n:2,l:'Lun 2'},{n:3,l:'Mar 3'},{n:4,l:'Mié 4'},{n:5,l:'Jue 5'},{n:6,l:'Vie 6'}];
+const COLS=[{id:'gestiones',l:'Gestiones',m:false},{id:'efectivas',l:'Efectivas',m:false},{id:'promesas',l:'Promesas',m:false},{id:'cumplidas',l:'Cumplidas',m:false},{id:'monto_prom',l:'M. Promesado',m:true},{id:'rec_op',l:'R. Operativo',m:true},{id:'rec_masivo',l:'R. Masivo',m:true}];
+const CNAMES=['Banistmo Activa','Ban. Recovery','SURA','TIGO','KrediYa','Solve','CA Activa','BLH','BAC','Rodelag','Global Bank','Delta'];
+const SD={1:{gestiones:3218,efectivas:812,promesas:241,cumplidas:89,monto_prom:68400,rec_op:24100,rec_masivo:98300},2:{gestiones:2990,efectivas:744,promesas:218,cumplidas:102,monto_prom:57200,rec_op:19800,rec_masivo:''},3:{gestiones:3104,efectivas:788,promesas:234,cumplidas:95,monto_prom:62100,rec_op:22400,rec_masivo:41200}};
+function ProductividadPage(){
+  const [cart,setCart]=useState('Banistmo Activa'),[sel,setSel]=useState(4),[rows,setRows]=useState(SD),[saved,setSaved]=useState([1,2,3]),[lbl,setLbl]=useState('Guardar semana'),[imp,setImp]=useState(false);
+  const DH=4;
+  const ds=d=>{if(d>DH)return'future';if(d===DH)return'today';if(saved.includes(d))return'filled';return'empty';};
+  const acum=COLS.reduce((a,c)=>{a[c.id]=Object.entries(rows).filter(([d])=>+d<=DH).reduce((s,[,r])=>s+(parseFloat(r[c.id])||0),0);return a},{});
+  const doImp=()=>{setImp(true);setTimeout(()=>{setRows(p=>({...p,4:{gestiones:2418,efectivas:631,promesas:198,cumplidas:74,monto_prom:54320,rec_op:21080,rec_masivo:''}}));setImp(false);},1200);};
+  const doSave=()=>{setSaved(p=>p.includes(sel)?p:[...p,sel]);setLbl('✓ Guardado');setTimeout(()=>setLbl('Guardar semana'),2000);};
+  return React.createElement('div',null,
+    React.createElement('div',{className:'sl'},'Carga de productividad diaria'),
+    React.createElement('div',{style:{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'flex-end'}},
+      React.createElement('div',null,React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginBottom:4}},'Cartera'),
+        React.createElement('select',{className:'sp-input',style:{width:'auto'},value:cart,onChange:e=>setCart(e.target.value)},CNAMES.map(c=>React.createElement('option',{key:c},c)))),
+      React.createElement('div',null,React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginBottom:4}},'Semana'),
+        React.createElement('select',{className:'sp-input',style:{width:'auto'}},React.createElement('option',null,'2–6 jun 2026'),React.createElement('option',null,'26–30 may 2026')))),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}},
+      React.createElement('div',{className:'card',style:{margin:0,padding:12,cursor:'pointer',textAlign:'center'},onClick:doImp},
+        React.createElement('i',{className:'ti ti-camera',style:{fontSize:22,color:'var(--sp-text-ter)'}}),
+        React.createElement('div',{style:{fontSize:13,fontWeight:500,marginTop:4}},imp?'Procesando con IA…':'Captura o imagen del reporte'),
+        React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginTop:2}},'Foto, screenshot o PDF'),
+        imp&&React.createElement('div',{className:'progress-wrap',style:{marginTop:8}},React.createElement('div',{className:'progress-fill',style:{background:'var(--sp-blue)',width:'60%'}}))),
+      React.createElement('div',{className:'card',style:{margin:0,padding:12,cursor:'pointer',textAlign:'center'}},
+        React.createElement('i',{className:'ti ti-table-import',style:{fontSize:22,color:'var(--sp-text-ter)'}}),
+        React.createElement('div',{style:{fontSize:13,fontWeight:500,marginTop:4}},'Importar desde Excel'),
+        React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginTop:2}},'Copia el rango · Ctrl+V para pegar'))),
+    React.createElement('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:12}},
+      WDAYS.map(d=>{const st=ds(d.n);const iS=sel===d.n;return React.createElement('button',{key:d.n,onClick:()=>st!=='future'&&setSel(d.n),className:'day-btn '+(iS?'selected':st),style:{width:64,padding:'7px 4px'}},d.l);})),
+    sel<DH&&React.createElement('div',{className:'alert-bar warn',style:{marginBottom:10}},React.createElement('i',{className:'ti ti-alert-triangle',style:{fontSize:14,flexShrink:0}}),'Editando día '+sel+' — registro ya guardado.'),
+    React.createElement('div',{className:'card',style:{overflowX:'auto'}},
+      React.createElement('table',{className:'sp-table',style:{minWidth:700}},
+        React.createElement('thead',null,React.createElement('tr',null,React.createElement('th',{style:{width:80}},'Día'),...COLS.map(c=>React.createElement('th',{key:c.id},c.l)))),
+        React.createElement('tbody',null,
+          ...WDAYS.map(d=>{const st=ds(d.n);const iF=st==='future';const iS=sel===d.n;const rd=rows[d.n]||{};
+            return React.createElement('tr',{key:d.n,style:{background:iS?'var(--sp-blue-light)':'inherit',opacity:iF?.35:1},onClick:()=>!iF&&setSel(d.n)},
+              React.createElement('td',null,React.createElement('div',{style:{fontWeight:600,fontSize:12}},d.l),React.createElement('div',{style:{fontSize:10}},st==='filled'?React.createElement('span',{style:{color:'var(--sp-success)'}},'● guardado'):st==='today'?React.createElement('span',{style:{color:'var(--sp-blue)'}},'● hoy'):React.createElement('span',{style:{color:'var(--sp-text-ter)'}},'● futuro'))),
+              ...COLS.map(c=>React.createElement('td',{key:c.id},
+                React.createElement('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                  c.m&&React.createElement('span',{style:{fontSize:10,color:iF?'var(--sp-text-ter)':'#0F6E56'}},'B/.'),
+                  React.createElement('input',{type:'number',min:0,disabled:iF,value:rd[c.id]??'',placeholder:iF?'—':'0',
+                    onChange:e=>setRows(p=>({...p,[d.n]:{...(p[d.n]||{}),[c.id]:e.target.value}})),
+                    style:{width:'100%',border:'none',background:'transparent',outline:'none',fontSize:12,fontWeight:500,fontFamily:'DM Mono,monospace',color:c.m?'#0F6E56':'var(--sp-text)'}})))));
+          }),
+          React.createElement('tr',{className:'row-total'},React.createElement('td',null,React.createElement('div',{style:{fontSize:11,fontWeight:700}},'Acumulado')),...COLS.map(c=>React.createElement('td',{key:c.id,style:{fontFamily:'DM Mono,monospace',fontSize:12,color:c.m?'#0F6E56':'var(--sp-text)'}},c.m&&'B/.',Math.round(acum[c.id]).toLocaleString('es-PA'))))))),
+    React.createElement('div',{style:{display:'flex',gap:8,justifyContent:'flex-end',marginTop:4}},
+      React.createElement('button',{className:'btn-secondary'},'← Semana anterior'),
+      React.createElement('button',{className:'btn-primary',onClick:doSave},React.createElement('i',{className:'ti ti-device-floppy',style:{marginRight:5}}),lbl)));
+}
+
+function SeguimientoPage(){
+  const SD2={
+    ba:{name:'Banistmo Activa',t:'simple',desc:'Ofrecimientos diarios por tramo de mora.',fields:[{id:'t1_30',l:'Tramo 1–30 días',h:'Mora temprana'},{id:'t31_60',l:'Tramo 31–60 días',h:'Mora media'},{id:'t61_90',l:'Tramo 61–90 días',h:'Mora avanzada'}],meta:500000,monto:230,pct:50},
+    br:{name:'Banistmo Recovery',t:'segs',desc:'Tres herramientas con metas independientes.',segs:[{id:'prosp',l:'Prospectos',h:'Herramienta de ofrecimiento',tag:'Ofrecimiento',meta:41000,monto:84,pct:69},{id:'canc',l:'Cancelaciones',h:'Cancelaciones totales o con descuento',tag:'Cancelación',meta:50000,monto:1492,pct:68},{id:'env',l:'Enviados al banco',h:'Clientes en análisis bancario',tag:'En análisis',meta:220000,monto:5500,pct:75}]},
+    sura:{name:'SURA',t:'simple',desc:'Asignación de cartera diaria. Monto bajo exige alto volumen.',fields:[{id:'asig',l:'Asignación de cartera',h:'Monto total asignado hoy (B/.)'}],meta:750000,monto:121,pct:66},
+    tigo:{name:'TIGO',t:'ciclos',desc:'% de cuentas recuperadas por ciclo de facturación.',ciclos:[{id:'c1',l:'Ciclo 1',h:'% recuperadas corte 1',meta:280000},{id:'c15',l:'Ciclo 15',h:'% recuperadas corte 15',meta:280000},{id:'c21',l:'Ciclo 21',h:'% recuperadas corte 21',meta:280000},{id:'c6a',l:'Ciclo 6 – Fase 1',h:'% recuperadas fase 1',meta:25000},{id:'c6b',l:'Ciclo 6 – Fase 2',h:'% recuperadas fase 2',meta:25000}]},
+    solve:{name:'Solve',t:'simple',desc:'Solo cancelaciones. B/.81 promedio.',fields:[{id:'canc',l:'Cancelaciones del día',h:'Cancelaciones totales o con descuento'}],meta:35000,monto:81,pct:44},
+    ca:{name:'CA Activa',t:'simple',desc:'Tramos de mora avanzada (31+ días).',fields:[{id:'t31_60',l:'Tramo 31–60 días',h:'Mora media'},{id:'t61_90',l:'Tramo 61–90 días',h:'Mora avanzada'}],meta:125000,monto:215,pct:72},
+    blh:{name:'BLH',t:'simple',desc:'Cartera hipotecaria. Ticket B/.31,477.',fields:[{id:'mej',l:'Mejora',h:'Clientes con mejora'},{id:'con',l:'Contención',h:'En proceso de contención'},{id:'cas',l:'Castigo',h:'Mora severa'}],meta:505000,monto:31477,pct:39},
+    bac:{name:'BAC',t:'segs',desc:'Cancelaciones y renovaciones independientes.',segs:[{id:'canc',l:'Cancelaciones',h:'Deudas canceladas hoy',tag:'Cancelación',meta:10000,monto:58,pct:39},{id:'renov',l:'Renovaciones',h:'Reestructuraciones aprobadas',tag:'Reestructuración',meta:50000,monto:992,pct:46}]},
+    rodelag:{name:'Rodelag',t:'simple',desc:'Descuentos y arreglos. B/.62 promedio.',fields:[{id:'desc',l:'Descuentos',h:'Quitas parciales'},{id:'arr',l:'Arreglos de pago',h:'Planes de pago acordados'}],meta:4000,monto:62,pct:76},
+    delta:{name:'Banco Delta',t:'simple',desc:'Solo cancelaciones. B/.250 promedio.',fields:[{id:'canc',l:'Cancelaciones del día',h:'Cancelaciones procesadas hoy'}],meta:10000,monto:250,pct:40},
+  };
+  const [sk,setSk]=useState('ba'),[vals,setVals]=useState({});
+  const c=SD2[sk];const DA=4,DH=26;
+  const CBox=({meta,monto,pct})=>{const nec=calcN(meta,monto,pct);const mtd=calcMTD(nec,DH,DA);
+    return React.createElement('div',{className:'calc-box'},
+      React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)',marginBottom:2}},React.createElement('i',{className:'ti ti-calculator',style:{marginRight:4}}),'Para cumplir ',React.createElement('strong',null,fB(meta))),
+        React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)'}},'necesitas ',React.createElement('strong',{style:{fontSize:18}},fN(nec)),' promesas en el mes'),
+        React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',opacity:.8,marginTop:2}},'A hoy (día '+DA+') deberías llevar ~'+fN(mtd))),
+      React.createElement('div',{style:{textAlign:'right',fontSize:11,color:'var(--sp-blue)'}},fB(monto)+' prom.',React.createElement('br'),React.createElement('span',{style:{opacity:.8}},pct+'% cumpl.')));};
+  return React.createElement('div',null,
+    React.createElement('div',{className:'sl'},'Calculadora de promesas por cartera'),
+    React.createElement('div',{style:{display:'flex',gap:5,flexWrap:'wrap',marginBottom:14}},
+      Object.entries(SD2).map(([k,v])=>React.createElement('button',{key:k,className:'chip'+(sk===k?' active':''),onClick:()=>{setSk(k);setVals({});}},v.name))),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'card-head'},React.createElement('div',{className:'card-title'},c.name)),
+      React.createElement('div',{className:'card-body'},
+        React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-sec)',padding:'6px 9px',background:'var(--sp-bg)',borderRadius:'var(--r-sm)',marginBottom:12}},c.desc),
+        c.t==='simple'&&React.createElement(React.Fragment,null,
+          React.createElement(CBox,{meta:c.meta,monto:c.monto,pct:c.pct}),
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+            c.fields.map(f=>React.createElement('div',{key:f.id,className:'cell-wrap'},
+              React.createElement('div',{className:'cell-label'},f.l),
+              React.createElement('input',{className:'cell-input',type:'number',min:0,placeholder:'0',value:vals[f.id]||'',onChange:e=>setVals(p=>({...p,[f.id]:e.target.value}))}),
+              React.createElement('div',{className:'cell-hint'},f.h))))),
+        c.t==='segs'&&c.segs.map(seg=>{const nec=calcN(seg.meta,seg.monto,seg.pct);const mtd=calcMTD(nec,DH,DA);
+          return React.createElement('div',{key:seg.id,className:'card',style:{marginBottom:8}},
+            React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
+              React.createElement('div',{style:{fontSize:12,fontWeight:600}},seg.l,' ',React.createElement('span',{className:'bdg bdg-info'},seg.tag)),
+              React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'Meta: '+fB(seg.meta))),
+            React.createElement('div',{className:'calc-box',style:{marginBottom:8}},
+              React.createElement('div',null,React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)'}},'Promesas necesarias: ',React.createElement('strong',{style:{fontSize:14}},fN(nec))),React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',opacity:.8}},'A hoy ~'+fN(mtd))),
+              React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)',textAlign:'right'}},fB(seg.monto)+' prom.',React.createElement('br'),React.createElement('span',{style:{opacity:.8}},seg.pct+'% cumpl.'))),
+            React.createElement('input',{className:'sp-input',type:'number',min:0,placeholder:'0',value:vals[seg.id]||'',onChange:e=>setVals(p=>({...p,[seg.id]:e.target.value}))}),
+            React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginTop:4}},seg.h));}),
+        c.t==='ciclos'&&React.createElement(React.Fragment,null,
+          React.createElement('div',{className:'alert-bar info'},React.createElement('i',{className:'ti ti-info-circle',style:{fontSize:14,flexShrink:0}}),'Ingresa el ',React.createElement('strong',null,'% de cuentas recuperadas'),' para cada ciclo. Varía diariamente.'),
+          c.ciclos.map(cic=>{const v=parseFloat(vals[cic.id])||0;const rec=Math.round((v/100)*cic.meta);
+            return React.createElement('div',{key:cic.id,className:'card',style:{marginBottom:8}},
+              React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},React.createElement('div',{style:{fontSize:12,fontWeight:600}},cic.l),React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'Meta: '+fB(cic.meta))),
+              React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},
+                React.createElement('span',{style:{fontSize:20,color:'var(--sp-text-sec)'}},'%'),
+                React.createElement('input',{className:'cell-input pct',type:'number',min:0,max:100,step:.01,placeholder:'0.00',style:{width:80,fontSize:20},value:vals[cic.id]||'',onChange:e=>setVals(p=>({...p,[cic.id]:e.target.value}))}),
+                React.createElement('div',{style:{flex:1}},
+                  React.createElement('div',{className:'progress-wrap'},React.createElement('div',{className:'progress-fill',style:{background:'var(--sp-blue)',width:Math.min(v,100)+'%'}})),
+                  React.createElement('div',{style:{fontSize:10,color:v>50?'var(--sp-success)':v>25?'var(--sp-warning)':'var(--sp-text-ter)',marginTop:3}},v>0?'Equivale a '+fB(rec)+' recuperado':'Ingresa el % del día'))),
+              React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)'}},cic.h));})))));
+}
+
+function ParametrosPage(){
+  const PD={
+    ba:{n:'Banistmo Activa',dh:26,meta:500000,monto:230,pct:50},
+    br:{n:'Ban. Recovery',  dh:26,segs:[{id:'p',l:'Prospectos',tag:'Ofrecimiento',meta:41000,monto:84,pct:69},{id:'c',l:'Cancelaciones',tag:'Cancelación',meta:50000,monto:1492,pct:68},{id:'e',l:'Enviados',tag:'En análisis',meta:220000,monto:5500,pct:75}]},
+    sura:{n:'SURA',         dh:26,meta:750000,monto:121,pct:66},
+    tigo:{n:'TIGO',         dh:26,segs:[{id:'cp',l:'Ciclo principal',tag:'Ciclos',meta:280000,monto:44,pct:70},{id:'c6',l:'Ciclo 6',tag:'2 fases',meta:25000,monto:53,pct:34}]},
+    solve:{n:'Solve',       dh:26,meta:35000,monto:81,pct:44},
+    ca:{n:'CA Activa',      dh:26,meta:125000,monto:215,pct:72},
+    blh:{n:'BLH',           dh:26,meta:505000,monto:31477,pct:39},
+    bac:{n:'BAC',           dh:26,segs:[{id:'c',l:'Cancelaciones',tag:'Cancelación',meta:10000,monto:58,pct:39},{id:'r',l:'Renovaciones',tag:'Reestructuración',meta:50000,monto:992,pct:46}]},
+    delta:{n:'Banco Delta',  dh:26,meta:10000,monto:250,pct:40},
+  };
+  const [sk,setSk]=useState('ba'),[params,setParams]=useState(()=>JSON.parse(JSON.stringify(PD))),[sv,setSv]=useState(false);
+  const p=params[sk];const DA=4;
+  const upG=(f,v)=>{setParams(pr=>({...pr,[sk]:{...pr[sk],[f]:parseFloat(v)||0}}));setSv(false);};
+  const upS=(id,f,v)=>{setParams(pr=>({...pr,[sk]:{...pr[sk],segs:pr[sk].segs.map(s=>s.id===id?{...s,[f]:parseFloat(v)||0}:s)}}));setSv(false);};
+  const Res=({meta,monto,pct})=>{const nec=calcN(meta,monto,pct);const mtd=calcMTD(nec,p.dh,DA);
+    return React.createElement('div',{style:{background:'var(--sp-blue-light)',borderRadius:'var(--r-sm)',padding:'10px 12px',marginTop:10}},
+      React.createElement('div',{style:{fontSize:10,fontWeight:700,color:'var(--sp-blue)',marginBottom:8,textTransform:'uppercase',letterSpacing:'.05em'}},React.createElement('i',{className:'ti ti-calculator',style:{marginRight:4}}),'Resultado'),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}},
+        [{l:'Promesas (mes)',v:fN(nec),s:'Para cumplir meta'},{l:'Por día hábil',v:fN(Math.ceil(nec/Math.max(p.dh,1))),s:'De '+p.dh+' días'},{l:'MTD · día '+DA,v:fN(mtd),s:'Esperado a hoy'}].map(item=>
+          React.createElement('div',{key:item.l,style:{background:'var(--sp-surface)',borderRadius:'var(--r-sm)',padding:'8px 10px'}},
+            React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginBottom:3}},item.l),
+            React.createElement('div',{style:{fontSize:18,fontWeight:700,color:'var(--sp-blue)'}},item.v),
+            React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginTop:2}},item.s)))),
+      React.createElement('div',{style:{marginTop:8,fontSize:11,fontFamily:'DM Mono,monospace',color:'var(--sp-text-sec)',background:'var(--sp-surface)',borderRadius:'var(--r-sm)',padding:'5px 9px'}},
+        fB(meta)+' ÷ '+fB(monto)+' ÷ '+pct+'% = ',React.createElement('strong',null,fN(nec))));};
+  const FR=({label,desc,value,onChange,pre,suf})=>React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--sp-border)'}},
+    React.createElement('div',{style:{flex:1}},React.createElement('div',{style:{fontSize:12,fontWeight:600}},label),desc&&React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginTop:2}},desc)),
+    React.createElement('div',{style:{display:'flex',alignItems:'center',gap:5,minWidth:130,justifyContent:'flex-end'}},
+      pre&&React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},pre),
+      React.createElement('input',{type:'number',min:0,value:value,onChange:e=>onChange(e.target.value),
+        style:{width:90,border:'1px solid var(--sp-border)',borderRadius:'var(--r-sm)',padding:'5px 8px',fontSize:13,fontWeight:600,textAlign:'right',color:'var(--sp-text)',background:'var(--sp-surface)',outline:'none',fontFamily:'DM Mono,monospace'},
+        onFocus:e=>{e.target.style.borderColor='var(--sp-blue)';e.target.style.background='var(--sp-blue-light)'},
+        onBlur:e=>{e.target.style.borderColor='var(--sp-border)';e.target.style.background='var(--sp-surface)'}}),
+      suf&&React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)',minWidth:24}},suf)));
+  return React.createElement('div',null,
+    React.createElement('div',{className:'sl'},'Configuración de parámetros · Admin / Gerente'),
+    React.createElement('div',{className:'alert-bar info',style:{marginBottom:14}},React.createElement('i',{className:'ti ti-lock',style:{fontSize:14,flexShrink:0}}),'Estos parámetros alimentan la calculadora del supervisor y el dashboard.'),
+    React.createElement('div',{style:{display:'flex',gap:5,flexWrap:'wrap',marginBottom:14}},
+      Object.entries(PD).map(([k,v])=>React.createElement('button',{key:k,className:'chip'+(sk===k?' active':''),onClick:()=>setSk(k)},v.n))),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'card-head'},React.createElement('div',{className:'card-title'},p.n),React.createElement('span',{className:p.segs?'bdg bdg-info':'bdg bdg-ok'},p.segs?'Multi-segmento':'Segmento único')),
+      React.createElement('div',{className:'card-body'},
+        React.createElement(FR,{label:'Días hábiles del mes',desc:'Días reales de trabajo (excluye feriados)',value:p.dh,onChange:v=>upG('dh',v),suf:'días'}),
+        React.createElement('div',{style:{height:12}}),
+        !p.segs&&React.createElement(React.Fragment,null,
+          React.createElement(FR,{label:'Meta operativa',desc:'Objetivo de recaudo en Balboas',value:p.meta,onChange:v=>upG('meta',v),pre:'B/.'}),
+          React.createElement(FR,{label:'Monto promedio de pago',desc:'Pago promedio histórico por cliente',value:p.monto,onChange:v=>upG('monto',v),pre:'B/.'}),
+          React.createElement(FR,{label:'% de cumplimiento',desc:'De 100 promesas, ¿cuántas se cobran?',value:p.pct,onChange:v=>upG('pct',v),suf:'%'}),
+          React.createElement(Res,{meta:p.meta,monto:p.monto,pct:p.pct})),
+        p.segs&&p.segs.map(seg=>React.createElement('div',{key:seg.id,style:{border:'1px solid var(--sp-border)',borderRadius:'var(--r-sm)',padding:12,marginBottom:10}},
+          React.createElement('div',{style:{fontSize:12,fontWeight:700,marginBottom:8}},seg.l,' ',React.createElement('span',{className:'bdg bdg-info'},seg.tag)),
+          React.createElement(FR,{label:'Meta operativa',desc:'',value:seg.meta,onChange:v=>upS(seg.id,'meta',v),pre:'B/.'}),
+          React.createElement(FR,{label:'Monto promedio',desc:'',value:seg.monto,onChange:v=>upS(seg.id,'monto',v),pre:'B/.'}),
+          React.createElement(FR,{label:'% cumplimiento',desc:'',value:seg.pct,onChange:v=>upS(seg.id,'pct',v),suf:'%'}),
+          React.createElement(Res,{meta:seg.meta,monto:seg.monto,pct:seg.pct}))))),
+    React.createElement('div',{style:{display:'flex',justifyContent:'flex-end',gap:8,alignItems:'center'}},
+      React.createElement('span',{style:{fontSize:11,color:sv?'var(--sp-success)':'var(--sp-text-ter)'}},sv?'✓ Guardado':'Sin cambios'),
+      React.createElement('button',{className:'btn-primary',onClick:()=>setSv(true)},React.createElement('i',{className:'ti ti-device-floppy',style:{marginRight:5}}),'Guardar parámetros')));
+}
+
+const PAGES={
+  dashboard:DashboardPage,productividad:ProductividadPage,seguimiento:SeguimientoPage,
+  logistica:()=>React.createElement('div',null,React.createElement('div',{className:'sl'},'Logística · Junio 2026'),React.createElement(LogisticsPanel)),
+  parametros:ParametrosPage,
+  pendientes:({onPCC})=>React.createElement(PendingPanel,{onCC:onPCC}),
+};
+
+function App(){
+  const [tab,setTab]=useState('dashboard'),[pc,setPc]=useState(8);
+  const P=PAGES[tab]||DashboardPage;
+  return React.createElement('div',{className:'page-layout'},
+    React.createElement(Topbar),
+    React.createElement(Navigation,{active:tab,onChange:setTab,pc:pc}),
+    React.createElement('main',{className:'page-body'},React.createElement(P,{onPCC:setPc})));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+
+</script>
+</body>
 </html>
