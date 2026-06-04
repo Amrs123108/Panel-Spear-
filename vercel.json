@@ -1,5 +1,9 @@
 {
+  "functions": {
+    "api/data.js": { "runtime": "edge" }
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    { "source": "/(.*)",        "destination": "/index.html"  }
   ]
 }
