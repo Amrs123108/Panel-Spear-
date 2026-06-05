@@ -651,38 +651,79 @@ function TrendChart(){
     let ds=vw==='all'
       ?[{label:'Consolidado',data:TOT[met].map((v,i)=>i===3&&v===0?null:v),borderColor:col,backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,pointBackgroundColor:col,tension:.35,spanGaps:false}]
       :CART.map((c,i)=>({label:c.n,data:c[met].map((v,j)=>j===3&&v===0?null:v),borderColor:fi===null||fi===i?PAL[i%PAL.length]:'rgba(180,178,169,.18)',backgroundColor:'transparent',borderWidth:fi===i?2.5:1.2,pointRadius:fi===null||fi===i?3:1,pointBackgroundColor:PAL[i%PAL.length],tension:.35,spanGaps:false}));
-    ch.current=new Chart(ctx,{type:'line',data:{labels:MONTHS,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:tc,bodyColor:'#0D1B2E',borderColor:'#E2E7EF',borderWidth:1,callbacks:{label:c=>{const v=c.parsed.y;if(v===null)return null;if(met==='rec')return ` ${c.dataset.label}: ${fM(v)}`;if(met==='pct')return ` ${c.dataset.label}: ${Math.round(v)}%`;return ` ${c.dataset.label}: ${fN(v)}`;}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:v=>{if(met==='rec')return'B/.'+v.toFixed(1)+'M';if(met==='pct')return v+'%';return v>=1000?(v/1000).toFixed(0)+'K':v;}}}}}});
-    return()=>ch.current&&ch.current.destroy();
+    ch.current=new Chart(ctx,{type:'line',data:{labels:MONTHS,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:tc,bodyColor:'#0D1B2E',borderColor:'#E2E7EF',borderWidth:1,callbacks:{label:function(c){var v=c.parsed.y;if(v===null)return null;if(met==='rec')return ' '+c.dataset.label+': '+fM(v);if(met==='pct')return ' '+c.dataset.label+': '+Math.round(v)+'%';return ' '+c.dataset.label+': '+fN(v);}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:function(v){if(met==='rec')return 'B/.'+v.toFixed(1)+'M';if(met==='pct')return v+'%';return v>=1000?(v/1000).toFixed(0)+'K':v;}}}}}});
+    return function(){if(ch.current)ch.current.destroy();};
   },[met,vw,fi]);
-  function TrI({arr}){const{d,p}=trCalc(arr);if(d==='up')return React.createElement('span',{className:'t-up'},'↑ '+Math.abs(p).toFixed(1)+'%');if(d==='dn')return React.createElement('span',{className:'t-dn'},'↓ '+Math.abs(p).toFixed(1)+'%');return React.createElement('span',{className:'t-eq'},'→ estable');}
-  function SB({arr,m}){const s=sBdg(arr,m);const lb={ok:'↑ Sobre meta',warn:'⚠ En riesgo',err:'↓ Crítico',neutral:'Estable'};return React.createElement('span',{className:'bdg bdg-'+s},lb[s]);}
+  function TrI(p){var arr=p.arr,r=trCalc(arr);if(r.d==='up')return React.createElement('span',{className:'t-up'},'\u2191 '+Math.abs(r.p).toFixed(1)+'%');if(r.d==='dn')return React.createElement('span',{className:'t-dn'},'\u2193 '+Math.abs(r.p).toFixed(1)+'%');return React.createElement('span',{className:'t-eq'},'\u2192 estable');}
+  function SB(p){var arr=p.arr,m=p.m,s=sBdg(arr,m);var lb={ok:'\u2191 Sobre meta',warn:'\u26a0 En riesgo',err:'\u2193 Cr\u00edtico',neutral:'Estable'};return React.createElement('span',{className:'bdg bdg-'+s},lb[s]);}
+  var monthPills = ['Mar','Abr','May'].map(function(mo){
+    return React.createElement('span',{key:mo,style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:'var(--sp-bg)',color:'var(--sp-text-ter)',border:'1px solid var(--sp-border)',fontWeight:500}},mo);
+  });
+  monthPills.push(React.createElement('span',{key:'jun',style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:'var(--sp-blue-light)',color:'var(--sp-blue)',border:'1px solid var(--sp-blue-border)',fontWeight:600}},'Jun \u25cf'));
+  var metricTabs = ML.map(function(m){
+    return React.createElement('button',{key:m.id,className:'mtab'+(met===m.id?' active':''),onClick:function(){setMet(m.id);setFi(null);}},m.l);
+  });
+  var viewBtns = [{id:'all',l:'Total'},{id:'focus',l:'Por cartera'}].map(function(v){
+    return React.createElement('button',{key:v.id,onClick:function(){setVw(v.id);setFi(null);},style:{fontSize:11,padding:'3px 10px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',border:vw===v.id?'1px solid var(--sp-border)':'none',background:vw===v.id?'var(--sp-surface)':'transparent',color:vw===v.id?'var(--sp-text)':'var(--sp-text-sec)',fontWeight:vw===v.id?600:400}},v.l);
+  });
+  var legendItems = vw==='all'
+    ? React.createElement('span',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--sp-text-sec)',fontWeight:500}},React.createElement('span',{style:{width:10,height:10,borderRadius:'50%',background:MC[met],display:'inline-block'}}),' Total consolidado')
+    : CART.map(function(c,i){
+        return React.createElement('span',{key:c.id,onClick:function(){setFi(function(prev){return prev===i?null:i;});},style:{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--sp-text-sec)',cursor:'pointer',padding:'2px 7px',borderRadius:20,fontWeight:fi===i?600:400,background:fi===i?'var(--sp-bg)':'transparent',userSelect:'none'}},
+          React.createElement('span',{style:{width:8,height:8,borderRadius:'50%',background:PAL[i%PAL.length],display:'inline-block',opacity:fi===null||fi===i?1:.2}}),c.n);
+      });
+  var tableRows = CART.map(function(c){
+    return React.createElement('tr',{key:c.id},
+      React.createElement('td',{style:{fontWeight:600}},c.n),
+      ...[0,1,2,3].map(function(i){return React.createElement('td',{key:i},fCell(c[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'));}),
+      React.createElement('td',null,React.createElement(TrI,{arr:c[met]})),
+      React.createElement('td',null,React.createElement(SB,{arr:c[met],m:met}))
+    );
+  });
+  tableRows.push(
+    React.createElement('tr',{key:'total',className:'row-total'},
+      React.createElement('td',null,'Total general'),
+      ...[0,1,2,3].map(function(i){return React.createElement('td',{key:i},fCell(TOT[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'));}),
+      React.createElement('td',null,React.createElement(TrI,{arr:TOT[met]})),
+      React.createElement('td',null,React.createElement(SB,{arr:TOT[met],m:met}))
+    )
+  );
   return React.createElement('div',null,
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-head'},
         React.createElement('div',null,
-          React.createElement('div',{className:'card-title'},'Evolución mensual consolidada'),
-          React.createElement('div',{style:{display:'flex',gap:4,marginTop:5}},
-            ['Mar','Abr','May'].map(m=>React.createElement('span',{key:m,style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:'var(--sp-bg)',color:'var(--sp-text-ter)',border:'1px solid var(--sp-border)',fontWeight:500}},m)),
-            React.createElement('span',{style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:'var(--sp-blue-light)',color:'var(--sp-blue)',border:'1px solid var(--sp-blue-border)',fontWeight:600}},'Jun ●'))),
+          React.createElement('div',{className:'card-title'},'Evoluc\u00f3n mensual consolidada'),
+          React.createElement('div',{style:{display:'flex',gap:4,marginTop:5}},monthPills)
+        ),
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
-          React.createElement('div',{style:{display:'flex',gap:3}},ML.map(m=>React.createElement('button',{key:m.id,className:'mtab'+(met===m.id?' active':''),onClick:()=>{setMet(m.id);setFi(null);}},m.l))),
-          React.createElement('div',{style:{display:'flex',gap:2,background:'var(--sp-bg)',borderRadius:20,padding:2}},
-            [{id:'all',l:'Total'},{id:'focus',l:'Por cartera'}].map(v=>React.createElement('button',{key:v.id,onClick:()=>{setVw(v.id);setFi(null);},style:{fontSize:11,padding:'3px 10px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',border:vw===v.id?'1px solid var(--sp-border)':'none',background:vw===v.id?'var(--sp-surface)':'transparent',color:vw===v.id?'var(--sp-text)':'var(--sp-text-sec)',fontWeight:vw===v.id?600:400}},v.l))))),
+          React.createElement('div',{style:{display:'flex',gap:3}},metricTabs),
+          React.createElement('div',{style:{display:'flex',gap:2,background:'var(--sp-bg)',borderRadius:20,padding:2}},viewBtns)
+        )
+      ),
       React.createElement('div',{style:{padding:'10px 16px 6px'}},
         React.createElement('div',{className:'note-bar'},TN[met]),
         React.createElement('div',{style:{height:200,position:'relative'}},React.createElement('canvas',{ref:cv})),
         vw==='focus'&&React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',textAlign:'center',marginTop:4}},'Clic en cartera para enfocarla'),
-        React.createElement('div',{style:{display:'flex',gap:7,flexWrap:'wrap',marginTop:8,paddingTop:7,borderTop:'1px solid var(--sp-border)'}},
-          vw==='all'?React.createElement('span',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--sp-text-sec)',fontWeight:500}},React.createElement('span',{style:{width:10,height:10,borderRadius:'50%',background:MC[met],display:'inline-block'}}),' Total consolidado')
-          :CART.map((c,i)=>React.createElement('span',{key:c.id,onClick:()=>setFi(p=>p===i?null:i),style:{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--sp-text-sec)',cursor:'pointer',padding:'2px 7px',borderRadius:20,fontWeight:fi===i?600:400,background:fi===i?'var(--sp-bg)':'transparent',userSelect:'none'}},
-            React.createElement('span',{style:{width:8,height:8,borderRadius:'50%',background:PAL[i%PAL.length],display:'inline-block',opacity:fi===null||fi===i?1:.2}}),c.n))))),
+        React.createElement('div',{style:{display:'flex',gap:7,flexWrap:'wrap',marginTop:8,paddingTop:7,borderTop:'1px solid var(--sp-border)'}},legendItems)
+      )
+    ),
     React.createElement('div',{className:'sl'},'Detalle comparativo por cartera'),
     React.createElement('div',{className:'card'},
       React.createElement('table',{className:'sp-table',style:{tableLayout:'fixed'}},
-        React.createElement('thead',null,React.createElement('tr',null,React.createElement('th',{style:{width:'20%'}},'Cartera'),React.createElement('th',{style:{width:'11%'}},'Marzo'),React.createElement('th',{style:{width:'11%'}},'Abril'),React.createElement('th',{style:{width:'12%'}},'Mayo'),React.createElement('th',{style:{width:'12%'}},'Junio'),React.createElement('th',{style:{width:'16%'}},'Tendencia'),React.createElement('th',{style:{width:'18%'}},'Estado'))),
-        React.createElement('tbody',null,
-          [...CART.map(c=>React.createElement('tr',{key:c.id},React.createElement('td',{style:{fontWeight:600}},c.n),...[0,1,2,3].map(i=>React.createElement('td',{key:i},fCell(c[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'))),React.createElement('td',null,React.createElement(TrI,{arr:c[met]})),React.createElement('td',null,React.createElement(SB,{arr:c[met],m:met})))),
-          React.createElement('tr',{className:'row-total'},React.createElement('td',null,'Total general'),...[0,1,2,3].map(i=>React.createElement('td',{key:i},fCell(TOT[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'))),React.createElement('td',null,React.createElement(TrI,{arr:TOT[met]})),React.createElement('td',null,React.createElement(SB,{arr:TOT[met],m:met})))])));
+        React.createElement('thead',null,
+          React.createElement('tr',null,
+            React.createElement('th',{style:{width:'20%'}},'Cartera'),
+            React.createElement('th',{style:{width:'11%'}},'Marzo'),
+            React.createElement('th',{style:{width:'11%'}},'Abril'),
+            React.createElement('th',{style:{width:'12%'}},'Mayo'),
+            React.createElement('th',{style:{width:'12%'}},'Junio'),
+            React.createElement('th',{style:{width:'16%'}},'Tendencia'),
+            React.createElement('th',{style:{width:'18%'}},'Estado')
+          )
+        ),
+        React.createElement('tbody',null,tableRows)
+      )
+    )
   );
 }
 
