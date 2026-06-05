@@ -507,6 +507,38 @@ const apiHistory = async (key) => {
   } catch { return null; }
 };
 
+
+// ── Dynamic date helpers ───────────────────────────────────────────────────────
+function getWeekDays(monday) {
+  var esp=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
+  var days=[];
+  for(var i=0;i<5;i++){
+    var d=new Date(monday);d.setDate(monday.getDate()+i);
+    days.push({n:d.getDate(),l:esp[d.getDay()]+' '+d.getDate(),iso:d.toISOString().slice(0,10),date:new Date(d)});
+  }
+  return days;
+}
+function getMondayOfWeek(date){
+  var d=new Date(date);d.setHours(0,0,0,0);
+  var day=d.getDay();var diff=day===0?-6:1-day;d.setDate(d.getDate()+diff);return d;
+}
+function formatWeekLabel(monday){
+  var fri=new Date(monday);fri.setDate(monday.getDate()+4);
+  var mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  if(monday.getMonth()===fri.getMonth())
+    return monday.getDate()+'\u2013'+fri.getDate()+' '+mn[fri.getMonth()]+' '+fri.getFullYear();
+  return monday.getDate()+' '+mn[monday.getMonth()]+' \u2013 '+fri.getDate()+' '+mn[fri.getMonth()]+' '+fri.getFullYear();
+}
+var TODAY=new Date();TODAY.setHours(0,0,0,0);
+var TODAY_NUM=TODAY.getDate();
+var TODAY_ISO=TODAY.toISOString().slice(0,10);
+var TODAY_MONTH=TODAY.getMonth();
+var TODAY_DISPLAY=(function(){
+  var dn=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'][TODAY.getDay()];
+  var mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][TODAY.getMonth()];
+  var totalDays=new Date(TODAY.getFullYear(),TODAY.getMonth()+1,0).getDate();
+  return dn+' '+TODAY_NUM+' '+mn+' '+TODAY.getFullYear()+' \u00b7 D\u00eda '+TODAY_NUM+' / '+totalDays;
+})();
 // ── App-level state loaded from Blob ─────────────────────────────────────────
 // Fallback data used while Blob loads (or if Blob unavailable)
 const FALLBACK = {
@@ -707,7 +739,7 @@ function Topbar({blobStatus}){
         background:blobStatus==='ok'?'rgba(29,158,117,.2)':'rgba(226,75,74,.2)',
         color:blobStatus==='ok'?'#1D9E75':'#E24B4A',border:'1px solid '+(blobStatus==='ok'?'rgba(29,158,117,.3)':'rgba(226,75,74,.3)')}},
         blobStatus==='ok'?'● Blob conectado':'● Sin Blob'),
-      React.createElement('span',{style:{fontSize:11,color:'rgba(255,255,255,.5)',background:'rgba(255,255,255,.08)',padding:'4px 10px',borderRadius:20,border:'1px solid rgba(255,255,255,.1)'}},'Jue 4 jun 2026 · Día 4 / 30'),
+      React.createElement('span',{style:{fontSize:11,color:'rgba(255,255,255,.5)',background:'rgba(255,255,255,.08)',padding:'4px 10px',borderRadius:20,border:'1px solid rgba(255,255,255,.1)'}},TODAY_DISPLAY),
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
         React.createElement('div',{style:{width:30,height:30,borderRadius:'50%',background:'var(--sp-blue)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}},'CZ'),
         React.createElement('div',null,
@@ -925,45 +957,60 @@ const DH=4;
 
 function ProductividadPage(){
   const [cart,setCart]=useState('banistmo_activa');
-  const [sel,setSel]=useState(4);
+  const [weekMonday,setWeekMonday]=useState(()=>getMondayOfWeek(TODAY));
   const [rows,setRows]=useState({});
   const [saved,setSaved]=useState([]);
   const [lbl,setLbl]=useState('Guardar semana');
   const [saveStatus,setSaveStatus]=useState(null);
   const [toast,setToast]=useState(null);
   const [histKey,setHistKey]=useState(null);
-  // Multi-upload state
   const [uploadFiles,setUploadFiles]=useState([]);
   const [uploadProg,setUploadProg]=useState(0);
   const [uploadDone,setUploadDone]=useState(false);
   const [uploadErr,setUploadErr]=useState(false);
 
+  const weekDays=getWeekDays(weekMonday);
+  const isCurrentWeek=weekMonday.getTime()===getMondayOfWeek(TODAY).getTime();
+  const defaultSel=isCurrentWeek?(weekDays.find(d=>d.iso===TODAY_ISO)||weekDays[weekDays.length-1]).n:weekDays[weekDays.length-1].n;
+  const [sel,setSel]=useState(defaultSel);
+
   useEffect(()=>{
     setRows({});setSaved([]);setSaveStatus('loading');
-    const dates=['2026-06-02','2026-06-03','2026-06-04','2026-06-05','2026-06-06'];
     let loaded=0;
-    dates.forEach(async(date,i)=>{
-      const day=i+2;
-      const data=await apiGet('productividad/'+cart+'/'+date);
+    var wds=weekDays.slice();
+    wds.forEach(async function(wd){
+      var data=await apiGet('productividad/'+cart+'/'+wd.iso);
       loaded++;
       if(data&&typeof data==='object'&&!data.error){
-        setRows(p=>({...p,[day]:data}));
-        setSaved(p=>p.includes(day)?p:[...p,day]);
+        setRows(function(p){return Object.assign({},p,{[wd.n]:data});});
+        setSaved(function(p){return p.includes(wd.n)?p:[...p,wd.n];});
       }
-      if(loaded===dates.length) setSaveStatus(null);
+      if(loaded===wds.length) setSaveStatus(null);
     });
-  },[cart]);
+  },[cart,weekMonday.toISOString()]);
 
-  const ds=d=>{if(d>DH)return'future';if(d===DH)return'today';if(saved.includes(d))return'filled';return'empty';};
+  useEffect(()=>{
+    if(isCurrentWeek){var t=weekDays.find(d=>d.iso===TODAY_ISO);if(t)setSel(t.n);}
+  },[weekMonday.toISOString()]);
+
+  const ds=d=>{
+    var wd=weekDays.find(x=>x.n===d);
+    if(!wd||wd.date>TODAY) return 'future';
+    if(wd.iso===TODAY_ISO) return 'today';
+    if(saved.includes(d)) return 'filled';
+    return 'empty';
+  };
   const acum=COLS.reduce((a,c)=>{a[c.id]=Object.entries(rows).filter(([d])=>+d<=DH).reduce((s,[,r])=>s+(parseFloat(r[c.id])||0),0);return a},{});
 
   const doSave=async(editedBy)=>{
     setSaveStatus('saving');
-    const dateMap={2:'2026-06-02',3:'2026-06-03',4:'2026-06-04',5:'2026-06-05',6:'2026-06-06'};
+    const dateMap={};
+    weekDays.forEach(wd=>{dateMap[wd.n]=wd.iso;});
     const entries=Object.entries(rows);
     if(entries.length===0){setSaveStatus('error');setToast({msg:'No hay datos para guardar',type:'err'});return;}
     let ok=0;
     for(const[day,data] of entries){
+      if(!dateMap[day]) continue;
       const res=await apiPost('productividad/'+cart+'/'+dateMap[day],{...data,cartera:cart,dia:+day},editedBy||'supervisor');
       if(res?.ok) ok++;
     }
@@ -1002,7 +1049,7 @@ function ProductividadPage(){
           ALL_CART.map(c=>React.createElement('option',{key:c.id,value:c.id},c.label)))),
       React.createElement('div',null,
         React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginBottom:4}},'Semana'),
-        React.createElement('select',{className:'sp-input',style:{width:'auto'}},React.createElement('option',null,'2\u20136 jun 2026'),React.createElement('option',null,'26\u201330 may 2026'))),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:4}},React.createElement('button',{className:'btn-secondary',style:{padding:'3px 8px',fontSize:12},onClick:function(){var p=new Date(weekMonday);p.setDate(p.getDate()-7);var nwd=getWeekDays(p);setWeekMonday(p);setSel(nwd[nwd.length-1].n);}},'←'),React.createElement('span',{style:{fontSize:11,fontWeight:600,color:'var(--sp-text)',padding:'0 6px',whiteSpace:'nowrap'}},formatWeekLabel(weekMonday)),React.createElement('button',{className:'btn-secondary',style:{padding:'3px 8px',fontSize:12},disabled:isCurrentWeek,onClick:function(){var n=new Date(weekMonday);n.setDate(n.getDate()+7);var nwd=getWeekDays(n);setWeekMonday(n);var t=nwd.find(function(d){return d.iso===TODAY_ISO;});setSel(t?t.n:nwd[nwd.length-1].n);}},'→'))),
       sup&&React.createElement('div',{style:{padding:'8px 12px',background:'var(--sp-blue-light)',borderRadius:'var(--r-sm)',fontSize:11,color:'var(--sp-blue)',fontWeight:500}},
         React.createElement('i',{className:'ti ti-user',style:{marginRight:5}}),sup.name),
       React.createElement(SaveIndicator,{status:saveStatus})),
@@ -1024,12 +1071,12 @@ function ProductividadPage(){
 
     // Day picker
     React.createElement('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:12}},
-      WDAYS.map(d=>{const st=ds(d.n);const iS=sel===d.n;return React.createElement('button',{key:d.n,onClick:()=>st!=='future'&&setSel(d.n),className:'day-btn '+(iS?'selected':st),style:{width:64,padding:'7px 4px'}},d.l);})),
+      weekDays.map(d=>{const st=ds(d.n);const iS=sel===d.n;return React.createElement('button',{key:d.n,onClick:()=>st!=='future'&&setSel(d.n),className:'day-btn '+(iS?'selected':st),style:{width:64,padding:'7px 4px'}},d.l);})),
 
     sel<DH&&React.createElement('div',{className:'alert-bar warn',style:{marginBottom:8}},
       React.createElement('i',{className:'ti ti-alert-triangle',style:{fontSize:14,flexShrink:0}}),
-      'Editando d\u00eda '+sel+' \u2014 ya guardado. Cambios sobreescribirán el registro.',
-      React.createElement('button',{onClick:()=>setHistKey('productividad/'+cart+'/2026-06-0'+sel),
+      'Editando d\u00eda '+sel+' ('+((weekDays.find(d=>d.n===sel)||{}).iso||'')+') \u2014 ya guardado. Cambios sobreescribir\u00e1n el registro existente.',
+      React.createElement('button',{onClick:()=>setHistKey('productividad/'+cart+'/'+(weekDays.find(d=>d.n===sel)||{iso:TODAY_ISO}).iso),
         style:{marginLeft:'auto',fontSize:10,border:'1px solid var(--sp-warning-bdr)',borderRadius:20,padding:'2px 8px',background:'transparent',color:'var(--sp-warning)',cursor:'pointer',fontFamily:'inherit'}},
         '\u{1F50D} Ver historial')),
 
@@ -1038,7 +1085,7 @@ function ProductividadPage(){
       React.createElement('table',{className:'sp-table',style:{minWidth:700}},
         React.createElement('thead',null,React.createElement('tr',null,React.createElement('th',{style:{width:80}},'D\u00eda'),...COLS.map(c=>React.createElement('th',{key:c.id},c.l)))),
         React.createElement('tbody',null,
-          ...WDAYS.map(d=>{const st=ds(d.n);const iF=st==='future';const iS=sel===d.n;const rd=rows[d.n]||{};
+          ...weekDays.map(d=>{const st=ds(d.n);const iF=st==='future';const iS=sel===d.n;const rd=rows[d.n]||{};
             return React.createElement('tr',{key:d.n,style:{background:iS?'var(--sp-blue-light)':'inherit',opacity:iF?.35:1,cursor:iF?'default':'pointer'},onClick:()=>!iF&&setSel(d.n)},
               React.createElement('td',null,React.createElement('div',{style:{fontWeight:600,fontSize:12}},d.l),React.createElement('div',{style:{fontSize:10}},st==='filled'?React.createElement('span',{style:{color:'var(--sp-success)'}},'● guardado'):st==='today'?React.createElement('span',{style:{color:'var(--sp-blue)'}},'● hoy'):React.createElement('span',{style:{color:'var(--sp-text-ter)'}},'● futuro'))),
               ...COLS.map(c=>React.createElement('td',{key:c.id},React.createElement('div',{style:{display:'flex',alignItems:'center',gap:3}},c.m&&React.createElement('span',{style:{fontSize:10,color:iF?'var(--sp-text-ter)':'#0F6E56'}},'B/.'),React.createElement('input',{type:'number',min:0,disabled:iF,value:rd[c.id]??'',placeholder:iF?'\u2014':'0',onChange:e=>setRows(p=>({...p,[d.n]:{...(p[d.n]||{}),[c.id]:e.target.value}})),style:{width:'100%',border:'none',background:'transparent',outline:'none',fontSize:12,fontWeight:500,fontFamily:'DM Mono,monospace',color:c.m?'#0F6E56':'var(--sp-text)'}})))));}),
@@ -1046,7 +1093,7 @@ function ProductividadPage(){
 
     // Action bar
     React.createElement('div',{style:{display:'flex',gap:8,justifyContent:'flex-end',alignItems:'center',marginTop:8}},
-      React.createElement('button',{className:'btn-secondary',onClick:()=>setHistKey('productividad/'+cart+'/2026-06-04')},
+      React.createElement('button',{className:'btn-secondary',onClick:()=>setHistKey('productividad/'+cart+'/'+TODAY_ISO)},
         React.createElement('i',{className:'ti ti-history',style:{marginRight:4}}),'Historial de cambios'),
       React.createElement('button',{className:'btn-secondary'},'← Semana anterior'),
       React.createElement('button',{className:'btn-primary',onClick:()=>doSave()},
@@ -1074,14 +1121,14 @@ function SeguimientoPage({params}){
     krediya:{name:'KrediYa',      sup:'Nicole N\u00fa\u00f1ez',   t:'simple',desc:'Gestiones KrediYa.',fields:[{id:'t1_30',l:'Tramo 1\u201330',h:'Mora temprana'},{id:'t31_60',l:'Tramo 31\u201360',h:'Mora media'}],meta:100000,monto:85,pct:44},
   };
   const [sk,setSk]=useState('ba'),[vals,setVals]=useState({}),[saveStatus,setSaveStatus]=useState(null),[toast,setToast]=useState(null);
-  const c=SD2[sk];const DA=4,DH_=26;
+  const c=SD2[sk];const DA=TODAY_NUM,DH_=26;
   const CBox=({meta,monto,pct})=>{if(!meta)return null;const nec=calcN(meta,monto,pct);const mtd=calcMTD(nec,DH_,DA);
     return React.createElement('div',{className:'calc-box'},
       React.createElement('div',null,React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)',marginBottom:2}},React.createElement('i',{className:'ti ti-calculator',style:{marginRight:4}}),'Para cumplir ',React.createElement('strong',null,fB(meta))),React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)'}},'necesitas ',React.createElement('strong',{style:{fontSize:18}},fN(nec)),' promesas en el mes'),React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',opacity:.8,marginTop:2}},'A hoy (d\u00eda '+DA+') ~'+fN(mtd)+' acumuladas')),
       React.createElement('div',{style:{textAlign:'right',fontSize:11,color:'var(--sp-blue)'}},fB(monto)+' prom.',React.createElement('br'),React.createElement('span',{style:{opacity:.8}},pct+'% cumpl.')));};
   const doSave=async()=>{
     setSaveStatus('saving');
-    const today='2026-06-04';
+    const today=TODAY_ISO;
     const res=await apiPost('seguimiento/'+sk+'/'+today,{...vals,cartera:sk,fecha:today},'supervisor');
     if(res?.ok){setSaveStatus('saved');setToast({msg:'Registro del d\u00eda guardado en Blob',type:'ok'});}
     else{setSaveStatus('error');setToast({msg:'Error al guardar. Reintenta.',type:'err'});}
@@ -1126,7 +1173,7 @@ function ParametrosPage({onSeedDone}){
 
   const PD = params || {};
   const p = PD[sk];
-  const DA=4;
+  const DA=TODAY_NUM;
 
   const upG=(f,v)=>setParams(pr=>({...pr,[sk]:{...pr[sk],[f]:parseFloat(v)||0}}));
   const upS=(id,f,v)=>setParams(pr=>({...pr,[sk]:{...pr[sk],segs:pr[sk].segs.map(s=>s.id===id?{...s,[f]:parseFloat(v)||0}:s)}}));
