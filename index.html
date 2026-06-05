@@ -683,6 +683,7 @@ function TrendChart(){
         React.createElement('tbody',null,
           [...CART.map(c=>React.createElement('tr',{key:c.id},React.createElement('td',{style:{fontWeight:600}},c.n),...[0,1,2,3].map(i=>React.createElement('td',{key:i},fCell(c[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'))),React.createElement('td',null,React.createElement(TrI,{arr:c[met]})),React.createElement('td',null,React.createElement(SB,{arr:c[met],m:met})))),
           React.createElement('tr',{className:'row-total'},React.createElement('td',null,'Total general'),...[0,1,2,3].map(i=>React.createElement('td',{key:i},fCell(TOT[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'))),React.createElement('td',null,React.createElement(TrI,{arr:TOT[met]})),React.createElement('td',null,React.createElement(SB,{arr:TOT[met],m:met})))])));
+  );
 }
 
 // ── Pending Panel ─────────────────────────────────────────────────────────────
