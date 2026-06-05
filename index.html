@@ -568,15 +568,26 @@ const CART_NAMES = {
   rodelag:'Rodelag',simpol:'Simpol',localizacion:'Localización',
   tigo:'TIGO',krediya:'KrediYa',sura:'SURA',
 };
+// ── Org chart ─────────────────────────────────────────────────────────────────
+// César Zambrano (Gerente)
+//   ├── Equipo César: Kevin, Luis, Nicole, Yeznhya
+//   └── Liliana M. (Coordinadora)
+//         └── Equipo Liliana: Andrew, Miriam, Víctor, Oris
 const SUPERVISORS = [
-  {id:'luis',    name:'Luis Dolande',    carteras:['banistmo_activa']},
-  {id:'andrew',  name:'Andrew González', carteras:['banistmo_recovery']},
-  {id:'miriam',  name:'Miriam Núñez',    carteras:['ca_activa','castigo','la_hipotecaria']},
-  {id:'victor',  name:'Víctor Delgado',  carteras:['global_bank','solve']},
-  {id:'yeznyha', name:'Yeznhya de León', carteras:['bac','banco_delta']},
-  {id:'oris',    name:'Oris Jaramillo',  carteras:['rodelag','simpol','localizacion']},
-  {id:'nicole',  name:'Nicole Núñez',    carteras:['tigo','krediya']},
-  {id:'kevin',   name:'Kevin Herrera',   carteras:['sura']},
+  {id:'luis',    name:'Luis Dolande',    jefe:'cesar',   rol:'Supervisor',  carteras:['banistmo_activa']},
+  {id:'andrew',  name:'Andrew González', jefe:'liliana', rol:'Supervisor',  carteras:['banistmo_recovery']},
+  {id:'miriam',  name:'Miriam Núñez',    jefe:'liliana', rol:'Supervisora', carteras:['ca_activa','castigo','la_hipotecaria']},
+  {id:'victor',  name:'Víctor Delgado',  jefe:'liliana', rol:'Supervisor',  carteras:['global_bank','solve']},
+  {id:'yeznyha', name:'Yeznhya de León', jefe:'cesar',   rol:'Supervisora', carteras:['bac','banco_delta']},
+  {id:'oris',    name:'Oris Jaramillo',  jefe:'liliana', rol:'Supervisora', carteras:['rodelag','simpol','localizacion']},
+  {id:'nicole',  name:'Nicole Núñez',    jefe:'cesar',   rol:'Supervisora', carteras:['tigo','krediya']},
+  {id:'kevin',   name:'Kevin Herrera',   jefe:'cesar',   rol:'Supervisor',  carteras:['sura']},
+];
+// Filter groups (for supervisor filter in dashboard)
+const SUP_GROUPS = [
+  {id:'todos',   label:'Todos los supervisores', sups:null},
+  {id:'cesar',   label:'Equipo César (directo)', sups:['luis','yeznyha','nicole','kevin']},
+  {id:'liliana', label:'Equipo Liliana',          sups:['andrew','miriam','victor','oris']},
 ];
 const SAB_WEEK_KEYS = ['2026-W23','2026-W24','2026-W25','2026-W26'];
 const TELE_WEEK_KEYS = ['2026-W23','2026-W24','2026-W25','2026-W26'];
@@ -799,8 +810,48 @@ function TrendChart({tendencia}){
   var metricTabs=ML.map(function(m){return React.createElement('button',{key:m.id,className:'mtab'+(met===m.id?' active':''),onClick:function(){setMet(m.id);setFi(null);}},m.l);});
   var viewBtns=[{id:'all',l:'Total'},{id:'focus',l:'Por cartera'}].map(function(v){return React.createElement('button',{key:v.id,onClick:function(){setVw(v.id);setFi(null);},style:{fontSize:11,padding:'3px 10px',borderRadius:20,cursor:'pointer',fontFamily:'inherit',border:vw===v.id?'1px solid var(--sp-border)':'none',background:vw===v.id?'var(--sp-surface)':'transparent',color:vw===v.id?'var(--sp-text)':'var(--sp-text-sec)',fontWeight:vw===v.id?600:400}},v.l);});
   var legendItems=vw==='all'?React.createElement('span',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--sp-text-sec)',fontWeight:500}},React.createElement('span',{style:{width:10,height:10,borderRadius:'50%',background:MC[met],display:'inline-block'}}), ' Total consolidado'):CART.map(function(c,i){return React.createElement('span',{key:c.id,onClick:function(){setFi(function(prev){return prev===i?null:i;});},style:{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--sp-text-sec)',cursor:'pointer',padding:'2px 7px',borderRadius:20,fontWeight:fi===i?600:400,background:fi===i?'var(--sp-bg)':'transparent',userSelect:'none'}},React.createElement('span',{style:{width:8,height:8,borderRadius:'50%',background:PAL[i%PAL.length],display:'inline-block',opacity:fi===null||fi===i?1:.2}}),c.n);});
-  var tableRows=CART.map(function(c){return React.createElement('tr',{key:c.id},React.createElement('td',{style:{fontWeight:600}},c.n),...[0,1,2,3].map(function(i){return React.createElement('td',{key:i},fCell(c[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'));}),React.createElement('td',null,React.createElement(TrI,{arr:c[met]})),React.createElement('td',null,React.createElement(SB,{arr:c[met],m:met})));});
-  tableRows.push(React.createElement('tr',{key:'total',className:'row-total'},React.createElement('td',null,'Total general'),...[0,1,2,3].map(function(i){return React.createElement('td',{key:i},fCell(TOT[met][i],i,met)||React.createElement('span',{style:{color:'var(--sp-blue)',fontSize:10,fontWeight:600}},'En curso'));}),React.createElement('td',null,React.createElement(TrI,{arr:TOT[met]})),React.createElement('td',null,React.createElement(SB,{arr:TOT[met],m:met}))));
+  // ── PARAMS for MTD calculation ──────────────────────────────────────────────
+  var RITMO_PARAMS = {
+    ba:{meta:500000,monto:230,pct:50},  su:{meta:750000,monto:121,pct:66},
+    ti:{meta:280000,monto:44, pct:70},  kr:{meta:100000,monto:85, pct:44},
+    so:{meta:35000, monto:81, pct:44},  ca:{meta:125000,monto:215,pct:72},
+    bl:{meta:505000,monto:31477,pct:39},br:{meta:311000,monto:null,pct:null},
+  };
+  var DH_JUN=26, DA_JUN=TODAY_MONTH===5?TODAY_NUM:26; // dias habiles pasados en junio
+
+  function getEsperado(id,m){
+    var p=RITMO_PARAMS[id];if(!p||!p.monto||!p.pct)return null;
+    var nec=Math.ceil(p.meta/Math.max(p.monto,1)/(p.pct/100));
+    return Math.round(nec*(DA_JUN/DH_JUN));
+  }
+
+  // For the table, always show Mar/Abr/May columns + MTD columns (ignoring the met toggle for history cols)
+  var tableRows=CART.map(function(c){
+    var esp=getEsperado(c.id,met);
+    // Real MTD: from jun data (null for now = no data yet loaded per day)
+    var realMTD=null; // TODO: sum from Blob productividad keys
+    var avance=esp&&realMTD!=null?Math.round(realMTD/esp*100):null;
+    var proy=esp&&realMTD!=null?Math.round(realMTD/Math.max(DA_JUN,1)*DH_JUN):null;
+    var semColor=avance==null?'var(--sp-text-ter)':avance>=90?'var(--sp-success)':avance>=70?'var(--sp-warning)':'var(--sp-danger)';
+    var semBg=avance==null?'var(--sp-bg)':avance>=90?'var(--sp-success-bg)':avance>=70?'var(--sp-warning-bg)':'var(--sp-danger-bg)';
+    return React.createElement('tr',{key:c.id},
+      React.createElement('td',{style:{fontWeight:600,fontSize:11}},c.n),
+      ...[0,1,2].map(function(i){return React.createElement('td',{key:i,style:{fontSize:11}},fCell(c[met][i],i,met)||'—');}),
+      React.createElement('td',{style:{fontSize:11,color:'var(--sp-blue)',fontWeight:500}},esp?fN(esp):'—'),
+      React.createElement('td',{style:{fontSize:11,color:realMTD!=null?'var(--sp-text)':'var(--sp-text-ter)'}},realMTD!=null?fN(realMTD):'Sin datos'),
+      React.createElement('td',null,avance!=null
+        ?React.createElement('span',{style:{fontSize:11,fontWeight:700,color:semColor,background:semBg,padding:'2px 7px',borderRadius:20}},avance+'%')
+        :React.createElement('span',{style:{fontSize:10,color:'var(--sp-text-ter)'}},'—')),
+      React.createElement('td',{style:{fontSize:11,color:proy!=null?'var(--sp-text-sec)':'var(--sp-text-ter)'}},proy?fN(proy):'—'));
+  });
+  tableRows.push(React.createElement('tr',{key:'total',className:'row-total'},
+    React.createElement('td',null,'Total general'),
+    ...[0,1,2].map(function(i){return React.createElement('td',{key:i,style:{fontSize:11}},fCell(TOT[met][i],i,met)||'—');}),
+    React.createElement('td',{style:{fontSize:11,color:'var(--sp-blue)',fontWeight:600}},
+      fN(Object.values(RITMO_PARAMS).reduce(function(s,p){return s+(p.monto&&p.pct?Math.round(Math.ceil((p.meta/Math.max(p.monto,1)/(p.pct/100))*(DA_JUN/DH_JUN))):0);},0))),
+    React.createElement('td',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'—'),
+    React.createElement('td',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'—'),
+    React.createElement('td',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'—')));
   return React.createElement('div',null,
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-head'},
@@ -811,10 +862,21 @@ function TrendChart({tendencia}){
         React.createElement('div',{style:{height:200,position:'relative'}},React.createElement('canvas',{ref:cv})),
         vw==='focus'&&React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',textAlign:'center',marginTop:4}},'Clic en cartera para enfocarla'),
         React.createElement('div',{style:{display:'flex',gap:7,flexWrap:'wrap',marginTop:8,paddingTop:7,borderTop:'1px solid var(--sp-border)'}},legendItems))),
-    React.createElement('div',{className:'sl'},'Detalle comparativo por cartera'),
+    React.createElement('div',{className:'sl'},'Detalle comparativo por cartera — Ritmo vs Meta'),
     React.createElement('div',{className:'card'},
+      React.createElement('div',{style:{padding:'8px 12px',background:'var(--sp-blue-light)',borderBottom:'1px solid var(--sp-blue-border)',fontSize:11,color:'var(--sp-blue)'}},
+        React.createElement('i',{className:'ti ti-info-circle',style:{marginRight:6}}),
+        'La tabla muestra el ritmo de junio: promesas esperadas a hoy vs lo que llevan. Verde = on track, rojo = falencia.'),
       React.createElement('table',{className:'sp-table',style:{tableLayout:'fixed'}},
-        React.createElement('thead',null,React.createElement('tr',null,React.createElement('th',{style:{width:'20%'}},'Cartera'),React.createElement('th',{style:{width:'11%'}},'Marzo'),React.createElement('th',{style:{width:'11%'}},'Abril'),React.createElement('th',{style:{width:'12%'}},'Mayo'),React.createElement('th',{style:{width:'12%'}},'Junio'),React.createElement('th',{style:{width:'16%'}},'Tendencia'),React.createElement('th',{style:{width:'18%'}},'Estado'))),
+        React.createElement('thead',null,React.createElement('tr',null,
+          React.createElement('th',{style:{width:'17%'}},'Cartera'),
+          React.createElement('th',{style:{width:'11%'}},'Mar'),
+          React.createElement('th',{style:{width:'11%'}},'Abr'),
+          React.createElement('th',{style:{width:'11%'}},'May'),
+          React.createElement('th',{style:{width:'12%'}},'Esperado hoy'),
+          React.createElement('th',{style:{width:'12%'}},'Real MTD'),
+          React.createElement('th',{style:{width:'13%'}},'Avance'),
+          React.createElement('th',{style:{width:'13%'}},'Proy. cierre'))),
         React.createElement('tbody',null,tableRows))));
 }
 
@@ -849,100 +911,130 @@ function PendingPanel({onCC}){
         React.createElement('span',{className:'bdg bdg-ok'},'\u2713 Actualizado')))));
 }
 
-// ── Logistics Panel — Sábados + Teletrabajo ───────────────────────────────────
+// ── Logistics Panel — Sábados + Teletrabajo (datos completos del Excel) ───────
 function LogisticsPanel({sabados,teletrabajo}){
   const [sabIdx,setSabIdx]=useState(0);
   const [teleIdx,setTeleIdx]=useState(0);
   const [saveSt,setSaveSt]=useState(null);
   const [toast,setToast]=useState(null);
-  const [teleLocal,setTeleLocal]=useState({});
 
   const weekKeys=['2026-W23','2026-W24','2026-W25','2026-W26'];
-  const teleWeekLabels={
-    '2026-W23':'2–6 jun 2026','2026-W24':'9–13 jun 2026',
-    '2026-W25':'16–20 jun 2026','2026-W26':'23–27 jun 2026'
-  };
-
-  const sab = (sabados||{})[weekKeys[sabIdx]] || {date: weekKeys[sabIdx], asesores:[], alert:null};
-  const teleKey = weekKeys[teleIdx];
-  const teleBlob = (teletrabajo||{})[teleKey] || {remoto:[],sitio:[]};
-  const teleWeekData = teleLocal[teleKey] || {};
-
-  // Build list of supervisors for toggle
-  const supNames = SUPERVISORS.map(s=>s.name);
-
-  // Initialize teleLocal from blob when teletrabajo changes
-  useEffect(()=>{
-    if(teletrabajo&&teletrabajo[teleKey]){
-      const d = teletrabajo[teleKey];
-      const map = {};
-      (d.remoto||[]).forEach(n=>{ const s=SUPERVISORS.find(x=>x.name.startsWith(n.split(' ')[0])); if(s) map[s.id]='remoto'; });
-      (d.sitio||[]).forEach(n=>{ const s=SUPERVISORS.find(x=>x.name.startsWith(n.split(' ')[0])); if(s) map[s.id]='sitio'; });
-      setTeleLocal(p=>({...p,[teleKey]:map}));
-    }
-  },[teletrabajo,teleKey]);
-
-  const toggle=(supId,mode)=>{
-    setTeleLocal(p=>({...p,[teleKey]:{...(p[teleKey]||{}),[supId]:mode}}));
-  };
+  const sab  = (sabados  ||{})[weekKeys[sabIdx]] || {date:weekKeys[sabIdx],asesores:[],alert:null};
+  const tele = (teletrabajo||{})[weekKeys[teleIdx]] || {label:weekKeys[teleIdx],remoto:[],sitio:[]};
 
   const saveTele=async()=>{
     setSaveSt('saving');
-    const data=teleLocal[teleKey]||{};
-    const remoto=SUPERVISORS.filter(s=>data[s.id]==='remoto').map(s=>s.name);
-    const sitio =SUPERVISORS.filter(s=>data[s.id]==='sitio').map(s=>s.name);
-    const res=await apiPost('logistica/teletrabajo/'+teleKey,{data,remoto,sitio},'César Zambrano');
-    if(res?.ok){setSaveSt('saved');setToast({msg:'Teletrabajo guardado en Blob',type:'ok'});}
+    const res=await apiPost('logistica/teletrabajo/'+weekKeys[teleIdx],{...tele},'César Zambrano');
+    if(res&&res.ok){setSaveSt('saved');setToast({msg:'Teletrabajo guardado en Blob',type:'ok'});}
     else{setSaveSt('error');setToast({msg:'Error al guardar',type:'err'});}
     setTimeout(()=>setSaveSt(null),3000);
   };
 
-  const wkData=teleLocal[teleKey]||{};
-  const remCnt=Object.values(wkData).filter(v=>v==='remoto').length;
-  const sitCnt=Object.values(wkData).filter(v=>v==='sitio').length;
+  // Person row component
+  function PersonRow({p,bgColor,textColor}){
+    return React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--sp-border)'}},
+      React.createElement('div',{style:{width:28,height:28,borderRadius:'50%',background:bgColor||'var(--sp-bg)',
+        display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,
+        color:textColor||'var(--sp-text-ter)',flexShrink:0}},
+        ini(p.nombre)),
+      React.createElement('div',{style:{flex:1}},
+        React.createElement('div',{style:{fontSize:12,fontWeight:500,color:'var(--sp-text)'}},p.nombre),
+        p.rol&&React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)'}},p.rol)));
+  }
 
   return React.createElement('div',null,
     toast&&React.createElement(Toast,{msg:toast.msg,type:toast.type,onClose:()=>setToast(null)}),
     React.createElement('div',{className:'two-col'},
-      // SÁBADOS
+
+      // ── SÁBADOS ────────────────────────────────────────────────────────────
       React.createElement('div',{className:'card',style:{marginBottom:0}},
         React.createElement('div',{className:'card-head'},
-          React.createElement('div',null,React.createElement('div',{className:'card-title'},'S\u00e1bados libres'),React.createElement('div',{className:'card-sub'},sab.date||weekKeys[sabIdx])),
+          React.createElement('div',null,
+            React.createElement('div',{className:'card-title'},'Sábados libres'),
+            React.createElement('div',{className:'card-sub'},sab.date||weekKeys[sabIdx])),
           React.createElement('div',{style:{display:'flex',gap:4,alignItems:'center'}},
-            React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},onClick:()=>setSabIdx(i=>Math.max(0,i-1)),disabled:sabIdx===0},'←'),
-            React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},(sabIdx+1)+'/'+weekKeys.length),
-            React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},onClick:()=>setSabIdx(i=>Math.min(weekKeys.length-1,i+1)),disabled:sabIdx===weekKeys.length-1},'→'))),
+            React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},
+              onClick:()=>setSabIdx(i=>Math.max(0,i-1)),disabled:sabIdx===0},'←'),
+            React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)',padding:'0 2px'}},(sabIdx+1)+'/'+weekKeys.length),
+            React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},
+              onClick:()=>setSabIdx(i=>Math.min(weekKeys.length-1,i+1)),disabled:sabIdx===weekKeys.length-1},'→'))),
         React.createElement('div',{style:{padding:'10px 14px'}},
-          sab.alert&&React.createElement('div',{className:'alert-bar warn'},React.createElement('i',{className:'ti ti-alert-triangle',style:{fontSize:13,flexShrink:0}}),sab.alert),
-          React.createElement('div',{style:{background:'var(--sp-danger-bg)',border:'1px solid var(--sp-danger-bdr)',borderRadius:'var(--r-sm)',padding:'8px 12px',display:'flex',alignItems:'center',gap:10,marginBottom:8}},
+          sab.alert&&React.createElement('div',{className:'alert-bar warn'},
+            React.createElement('i',{className:'ti ti-alert-triangle',style:{fontSize:13,flexShrink:0}}),sab.alert),
+          React.createElement('div',{style:{background:'var(--sp-danger-bg)',border:'1px solid var(--sp-danger-bdr)',
+            borderRadius:'var(--r-sm)',padding:'8px 12px',display:'flex',alignItems:'center',gap:10,marginBottom:10}},
             React.createElement('i',{className:'ti ti-home',style:{fontSize:17,color:'var(--sp-danger)'}}),
-            React.createElement('span',{style:{fontSize:22,fontWeight:700,color:'var(--sp-danger)'}},sab.asesores?sab.asesores.length:0),
-            React.createElement('span',{style:{fontSize:11,color:'var(--sp-danger)',fontWeight:600}},'asesores no estar\u00e1n')),
+            React.createElement('span',{style:{fontSize:22,fontWeight:700,color:'var(--sp-danger)'}},(sab.asesores||[]).length),
+            React.createElement('span',{style:{fontSize:11,color:'var(--sp-danger)',fontWeight:600}},'asesores no estarán')),
           (sab.asesores||[]).length===0
             ?React.createElement('div',{style:{textAlign:'center',padding:'16px 0',fontSize:12,color:'var(--sp-text-ter)'}},'Sin ausencias registradas')
-            :(sab.asesores||[]).map((a,i)=>React.createElement('div',{key:i,className:'person-row'},
-              React.createElement('div',{className:'person-av'},ini(a.nombre||a.n||'?')),
-              React.createElement('div',null,React.createElement('div',{className:'person-name'},a.nombre||a.n),React.createElement('div',{className:'person-tag'},a.cartera||a.t)))))),
-      // TELETRABAJO
+            :React.createElement('div',{style:{maxHeight:220,overflowY:'auto'}},
+              (sab.asesores||[]).map((a,i)=>React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--sp-border)'}},
+                React.createElement('div',{style:{width:26,height:26,borderRadius:'50%',background:'var(--sp-danger-bg)',
+                  display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'var(--sp-danger)',flexShrink:0}},
+                  ini(a.nombre||'')),
+                React.createElement('div',null,
+                  React.createElement('div',{style:{fontSize:12,fontWeight:500}},a.nombre),
+                  React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)'}},a.cartera))))))),
+
+      // ── TELETRABAJO ────────────────────────────────────────────────────────
       React.createElement('div',{className:'card',style:{marginBottom:0}},
         React.createElement('div',{className:'card-head'},
-          React.createElement('div',null,React.createElement('div',{className:'card-title'},'Teletrabajo'),React.createElement('div',{className:'card-sub'},'Semana '+(teleWeekLabels[teleKey]||teleKey))),
+          React.createElement('div',null,
+            React.createElement('div',{className:'card-title'},'Teletrabajo'),
+            React.createElement('div',{className:'card-sub'},'Semana '+(tele.label||weekKeys[teleIdx]))),
           React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
             React.createElement('div',{style:{display:'flex',gap:4,alignItems:'center'}},
-              React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},onClick:()=>setTeleIdx(i=>Math.max(0,i-1)),disabled:teleIdx===0},'←'),
-              React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},(teleIdx+1)+'/'+weekKeys.length),
-              React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},onClick:()=>setTeleIdx(i=>Math.min(weekKeys.length-1,i+1)),disabled:teleIdx===weekKeys.length-1},'→')),
+              React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},
+                onClick:()=>setTeleIdx(i=>Math.max(0,i-1)),disabled:teleIdx===0},'←'),
+              React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)',padding:'0 2px'}},(teleIdx+1)+'/'+weekKeys.length),
+              React.createElement('button',{className:'btn-secondary',style:{padding:'3px 10px',fontSize:12},
+                onClick:()=>setTeleIdx(i=>Math.min(weekKeys.length-1,i+1)),disabled:teleIdx===weekKeys.length-1},'→')),
             React.createElement(SaveIndicator,{status:saveSt}))),
         React.createElement('div',{style:{padding:'10px 14px'}},
-          React.createElement('div',{style:{display:'flex',gap:6,marginBottom:10}},
-            React.createElement('div',{style:{background:'var(--sp-success-bg)',borderRadius:'var(--r-sm)',padding:'3px 10px',textAlign:'center'}},React.createElement('div',{style:{fontSize:16,fontWeight:700,color:'var(--sp-success)'}},remCnt),React.createElement('div',{style:{fontSize:10,color:'var(--sp-success)',fontWeight:600}},'remoto')),
-            React.createElement('div',{style:{background:'var(--sp-bg)',borderRadius:'var(--r-sm)',padding:'3px 10px',textAlign:'center'}},React.createElement('div',{style:{fontSize:16,fontWeight:700,color:'var(--sp-text)'}},sitCnt),React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:600}},'sitio'))),
-          SUPERVISORS.map(sup=>React.createElement('div',{key:sup.id,style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--sp-border)'}},
-            React.createElement('span',{style:{fontSize:12,fontWeight:500}},sup.name),
-            React.createElement('div',{style:{display:'flex',gap:4}},
-              ['remoto','sitio'].map(mode=>{const on=wkData[sup.id]===mode;
-                return React.createElement('button',{key:mode,onClick:()=>toggle(sup.id,mode),style:{fontSize:10,padding:'3px 9px',borderRadius:20,border:on?'1.5px solid var(--sp-blue)':'1px solid var(--sp-border)',background:on?'var(--sp-blue-light)':'transparent',color:on?'var(--sp-blue)':'var(--sp-text-ter)',cursor:'pointer',fontFamily:'inherit',fontWeight:on?600:400}},mode==='remoto'?'\u{1F3E0} Remoto':'\u{1F3E2} Sitio');})))),
-          React.createElement('button',{className:'btn-primary',style:{width:'100%',marginTop:10},onClick:saveTele},'Guardar modalidad de la semana')))));
+          // Counter row
+          React.createElement('div',{style:{display:'flex',gap:8,marginBottom:10}},
+            React.createElement('div',{style:{background:'var(--sp-success-bg)',borderRadius:'var(--r-sm)',padding:'4px 14px',textAlign:'center'}},
+              React.createElement('div',{style:{fontSize:18,fontWeight:700,color:'var(--sp-success)'}},(tele.remoto||[]).length),
+              React.createElement('div',{style:{fontSize:10,color:'var(--sp-success)',fontWeight:600}},'\uD83C\uDFE0 Remoto')),
+            React.createElement('div',{style:{background:'var(--sp-bg)',borderRadius:'var(--r-sm)',padding:'4px 14px',textAlign:'center'}},
+              React.createElement('div',{style:{fontSize:18,fontWeight:700,color:'var(--sp-text)'}},(tele.sitio||[]).length),
+              React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:600}},'\uD83C\uDFE2 Sitio')),
+            React.createElement('div',{style:{background:'var(--sp-blue-light)',borderRadius:'var(--r-sm)',padding:'4px 14px',textAlign:'center'}},
+              React.createElement('div',{style:{fontSize:18,fontWeight:700,color:'var(--sp-blue)'}},((tele.remoto||[]).length)+((tele.sitio||[]).length)),
+              React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',fontWeight:600}},'Total'))),
+
+          // Two columns: remoto | sitio
+          React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,maxHeight:220,overflow:'visible'}},
+            // REMOTO
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',
+                color:'var(--sp-success)',marginBottom:6,padding:'3px 0',borderBottom:'2px solid var(--sp-success-bdr)'}},
+                '\uD83C\uDFE0 Remoto'),
+              React.createElement('div',{style:{maxHeight:160,overflowY:'auto'}},
+                (tele.remoto||[]).map((p,i)=>React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:7,padding:'4px 0',borderBottom:'1px solid var(--sp-border)'}},
+                  React.createElement('div',{style:{width:24,height:24,borderRadius:'50%',background:'var(--sp-success-bg)',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,color:'var(--sp-success)',flexShrink:0}},
+                    ini(p.nombre||'')),
+                  React.createElement('div',null,
+                    React.createElement('div',{style:{fontSize:11,fontWeight:500,color:'var(--sp-text)'}},p.nombre),
+                    React.createElement('div',{style:{fontSize:9,color:'var(--sp-text-ter)'}},p.rol)))))),
+            // SITIO
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',
+                color:'var(--sp-text-sec)',marginBottom:6,padding:'3px 0',borderBottom:'2px solid var(--sp-border-dark)'}},
+                '\uD83C\uDFE2 En sitio'),
+              React.createElement('div',{style:{maxHeight:160,overflowY:'auto'}},
+                (tele.sitio||[]).map((p,i)=>React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:7,padding:'4px 0',borderBottom:'1px solid var(--sp-border)'}},
+                  React.createElement('div',{style:{width:24,height:24,borderRadius:'50%',background:'var(--sp-bg)',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,color:'var(--sp-text-sec)',flexShrink:0}},
+                    ini(p.nombre||'')),
+                  React.createElement('div',null,
+                    React.createElement('div',{style:{fontSize:11,fontWeight:500,color:'var(--sp-text)'}},p.nombre),
+                    React.createElement('div',{style:{fontSize:9,color:'var(--sp-text-ter)'}},p.rol))))))),
+
+          React.createElement('button',{className:'btn-secondary',style:{width:'100%',marginTop:10,fontSize:11},onClick:saveTele},
+            React.createElement('i',{className:'ti ti-device-floppy',style:{marginRight:5}}),'Guardar cambios de modalidad')))));
 }
 
 // ── Productividad Page ─────────────────────────────────────────────────────────
@@ -1050,8 +1142,15 @@ function ProductividadPage(){
       React.createElement('div',null,
         React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginBottom:4}},'Semana'),
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:4}},React.createElement('button',{className:'btn-secondary',style:{padding:'3px 8px',fontSize:12},onClick:function(){var p=new Date(weekMonday);p.setDate(p.getDate()-7);var nwd=getWeekDays(p);setWeekMonday(p);setSel(nwd[nwd.length-1].n);}},'←'),React.createElement('span',{style:{fontSize:11,fontWeight:600,color:'var(--sp-text)',padding:'0 6px',whiteSpace:'nowrap'}},formatWeekLabel(weekMonday)),React.createElement('button',{className:'btn-secondary',style:{padding:'3px 8px',fontSize:12},disabled:isCurrentWeek,onClick:function(){var n=new Date(weekMonday);n.setDate(n.getDate()+7);var nwd=getWeekDays(n);setWeekMonday(n);var t=nwd.find(function(d){return d.iso===TODAY_ISO;});setSel(t?t.n:nwd[nwd.length-1].n);}},'→'))),
-      sup&&React.createElement('div',{style:{padding:'8px 12px',background:'var(--sp-blue-light)',borderRadius:'var(--r-sm)',fontSize:11,color:'var(--sp-blue)',fontWeight:500}},
-        React.createElement('i',{className:'ti ti-user',style:{marginRight:5}}),sup.name),
+      sup&&React.createElement('div',{style:{padding:'8px 12px',background:'var(--sp-blue-light)',borderRadius:'var(--r-sm)',
+          fontSize:11,color:'var(--sp-blue)',fontWeight:500,display:'flex',alignItems:'center',gap:8}},
+        React.createElement('i',{className:'ti ti-user',style:{marginRight:3}}),
+        React.createElement('strong',null,sup.name),
+        React.createElement('span',{style:{opacity:.7}},sup.rol),
+        React.createElement('span',{style:{fontSize:9,padding:'1px 6px',borderRadius:20,
+          background:sup.jefe==='cesar'?'rgba(27,79,216,.15)':'rgba(29,158,117,.15)',
+          color:sup.jefe==='cesar'?'var(--sp-blue)':'var(--sp-success)',fontWeight:600}},
+          sup.jefe==='cesar'?'▸ Eq. César':'▸ Eq. Liliana')),
       React.createElement(SaveIndicator,{status:saveStatus})),
 
     // Upload cards
@@ -1141,8 +1240,16 @@ function SeguimientoPage({params}){
       Object.entries(SD2).map(([k,v])=>React.createElement('button',{key:k,className:'chip'+(sk===k?' active':''),onClick:()=>{setSk(k);setVals({});setSaveStatus(null);}},v.name))),
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-head'},
-        React.createElement('div',null,React.createElement('div',{className:'card-title'},c.name),React.createElement('div',{className:'card-sub'},React.createElement('i',{className:'ti ti-user',style:{fontSize:11,marginRight:4}}),c.sup)),
-        React.createElement(SaveIndicator,{status:saveStatus})),
+        React.createElement('div',null,
+          React.createElement('div',{className:'card-title'},c.name),
+          React.createElement('div',{className:'card-sub',style:{display:'flex',alignItems:'center',gap:6,marginTop:2}},
+            React.createElement('i',{className:'ti ti-user',style:{fontSize:11}}),
+            React.createElement('strong',null,c.sup),
+            React.createElement('span',{style:{fontSize:9,padding:'1px 6px',borderRadius:20,
+              background:['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(c.sup)?'rgba(29,158,117,.12)':'rgba(27,79,216,.12)',
+              color:['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(c.sup)?'var(--sp-success)':'var(--sp-blue)',fontWeight:600}},
+              ['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(c.sup)?'▸ Eq. Liliana':'▸ Eq. César'))),
+        RReact.createElement(SaveIndicator,{status:saveStatus})),
       React.createElement('div',{className:'card-body'},
         React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-sec)',padding:'6px 9px',background:'var(--sp-bg)',borderRadius:'var(--r-sm)',marginBottom:12}},c.desc),
         (c.t==='simple'||c.t==='tramos')&&React.createElement(React.Fragment,null,React.createElement(CBox,{meta:c.meta,monto:c.monto,pct:c.pct}),React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},c.fields.map(f=>React.createElement('div',{key:f.id,className:'cell-wrap'},React.createElement('div',{className:'cell-label'},f.l),React.createElement('input',{className:'cell-input',type:'number',min:0,placeholder:'0',value:vals[f.id]||'',onChange:e=>setVals(p=>({...p,[f.id]:e.target.value}))}),React.createElement('div',{className:'cell-hint'},f.h))))),
@@ -1228,7 +1335,14 @@ function ParametrosPage({onSeedDone}){
         Object.entries(PD).map(([k,v])=>React.createElement('button',{key:k,className:'chip'+(sk===k?' active':''),onClick:()=>setSk(k)},v.n))),
       React.createElement('div',{className:'card'},
         React.createElement('div',{className:'card-head'},
-          React.createElement('div',null,React.createElement('div',{className:'card-title'},p.n),React.createElement('div',{className:'card-sub'},React.createElement('i',{className:'ti ti-user',style:{fontSize:11,marginRight:4}}),(p.sup||'')+' \u00b7 '+(p.dh||26)+' d\u00edas h\u00e1biles')),
+          React.createElement('div',null,React.createElement('div',{className:'card-title'},p.n),React.createElement('div',{className:'card-sub',style:{display:'flex',alignItems:'center',gap:6,marginTop:2}},
+            React.createElement('i',{className:'ti ti-user',style:{fontSize:11}}),
+            React.createElement('strong',null,p.sup||''),
+            React.createElement('span',null,(p.dh||26)+' d\u00edas h\u00e1biles'),
+            React.createElement('span',{style:{fontSize:9,padding:'1px 6px',borderRadius:20,background:
+              ['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(p.sup||'')?'rgba(29,158,117,.12)':'rgba(27,79,216,.12)',
+              color:['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(p.sup||'')?'var(--sp-success)':'var(--sp-blue)',fontWeight:600}},
+              ['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(p.sup||'')?'\u25b8 Eq. Liliana':'\u25b8 Eq. C\u00e9sar'))),
           React.createElement('div',{style:{display:'flex',gap:8,alignItems:'center'}},React.createElement('span',{className:p.segs?'bdg bdg-info':'bdg bdg-ok'},p.segs?'Multi-segmento':'Segmento \u00fanico'),React.createElement(SaveIndicator,{status:saveStatus}))),
         React.createElement('div',{className:'card-body'},
           React.createElement(FR,{label:'D\u00edas h\u00e1biles del mes',desc:'D\u00edas reales de trabajo',value:p.dh,onChange:v=>upG('dh',v),suf:'d\u00edas'}),
@@ -1249,13 +1363,75 @@ function ParametrosPage({onSeedDone}){
 }
 
 // ── Dashboard Page ────────────────────────────────────────────────────────────
-const FILTER_CHIPS=['Todas','Banistmo A.','SURA','TIGO','KrediYa','Solve','BLH','BAC'];
 function DashboardPage({masterData,onPCC}){
-  const [af,setAf]=useState('Todas');
+  const [filtSup,setFiltSup]=useState('todos');   // supervisor group filter
+  const [filtCart,setFiltCart]=useState('todas'); // cartera filter
+
+  // Carteras visible based on sup filter
+  var visibleSupIds = filtSup==='todos' ? SUPERVISORS.map(s=>s.id)
+    : (SUP_GROUPS.find(g=>g.id===filtSup)||{sups:[]}).sups||[];
+  var visibleCarteras = filtSup==='todos'
+    ? Object.keys(CART_NAMES)
+    : SUPERVISORS.filter(s=>visibleSupIds.includes(s.id)).flatMap(s=>s.carteras);
+
+  // Reset cartera filter when sup changes
+  function handleSupFilter(supId){
+    setFiltSup(supId);
+    setFiltCart('todas'); // reset
+  }
+
+  // Cart chips from visible carteras
+  var cartChips = [{id:'todas',label:'Todas'},...visibleCarteras.map(id=>({id,label:CART_NAMES[id]||id}))];
+
   return React.createElement('div',null,
-    React.createElement('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14,alignItems:'center'}},
-      React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)',fontWeight:600,marginRight:2}},'Cartera:'),
-      FILTER_CHIPS.map(f=>React.createElement('button',{key:f,className:'chip'+(af===f?' active':''),onClick:()=>setAf(f)},f))),
+    // ── Dual filter bar ──────────────────────────────────────────────────────
+    React.createElement('div',{style:{background:'var(--sp-surface)',border:'1px solid var(--sp-border)',
+      borderRadius:'var(--r)',padding:'10px 14px',marginBottom:14,boxShadow:'var(--shadow-sm)'}},
+
+      // ROW 1: Supervisor filter
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:8}},
+        React.createElement('span',{style:{fontSize:10,fontWeight:700,color:'var(--sp-text-ter)',textTransform:'uppercase',
+          letterSpacing:'.06em',minWidth:70}},'Supervisor'),
+        // All supervisors option
+        React.createElement('button',{className:'chip'+(filtSup==='todos'?' active':''),
+          onClick:()=>handleSupFilter('todos')},'Todos'),
+        // Group chips
+        SUP_GROUPS.filter(g=>g.id!=='todos').map(g=>
+          React.createElement('button',{key:g.id,className:'chip'+(filtSup===g.id?' active':''),
+            onClick:()=>handleSupFilter(g.id)},g.label)),
+        // Individual supervisor chips
+        React.createElement('div',{style:{width:'100%',height:0}}), // line break
+        React.createElement('span',{style:{fontSize:10,fontWeight:700,color:'var(--sp-text-ter)',textTransform:'uppercase',
+          letterSpacing:'.06em',minWidth:70}},''),
+        SUPERVISORS.map(s=>
+          React.createElement('button',{key:s.id,
+            className:'chip'+(filtSup===s.id?' active':''),
+            style:{display:'flex',alignItems:'center',gap:4,
+              opacity: filtSup!=='todos'&&filtSup!==s.id&&!visibleSupIds.includes(s.id)?.45:1},
+            onClick:()=>handleSupFilter(s.id)},
+            React.createElement('span',{style:{width:6,height:6,borderRadius:'50%',flexShrink:0,
+              background:s.jefe==='cesar'?'var(--sp-blue)':'var(--sp-success)'}}),
+            s.name))),
+
+      // Divider
+      React.createElement('div',{style:{height:1,background:'var(--sp-border)',margin:'6px 0'}}),
+
+      // ROW 2: Cartera filter (contextual to supervisor)
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}},
+        React.createElement('span',{style:{fontSize:10,fontWeight:700,color:'var(--sp-text-ter)',textTransform:'uppercase',
+          letterSpacing:'.06em',minWidth:70}},'Cartera'),
+        cartChips.map(c=>
+          React.createElement('button',{key:c.id,className:'chip'+(filtCart===c.id?' active':''),
+            onClick:()=>setFiltCart(c.id)},c.label))),
+
+      // Legend
+      React.createElement('div',{style:{display:'flex',gap:12,marginTop:6,paddingTop:6,borderTop:'1px solid var(--sp-border)'}},
+        React.createElement('span',{style:{fontSize:10,color:'var(--sp-text-ter)',display:'flex',alignItems:'center',gap:4}},
+          React.createElement('span',{style:{width:6,height:6,borderRadius:'50%',background:'var(--sp-blue)',display:'inline-block'}}),
+          'Equipo César ('+SUPERVISORS.filter(s=>s.jefe==='cesar').length+' supervisores)'),
+        React.createElement('span',{style:{fontSize:10,color:'var(--sp-text-ter)',display:'flex',alignItems:'center',gap:4}},
+          React.createElement('span',{style:{width:6,height:6,borderRadius:'50%',background:'var(--sp-success)',display:'inline-block'}}),
+          'Equipo Liliana ('+SUPERVISORS.filter(s=>s.jefe==='liliana').length+' supervisores)'))),
     React.createElement(KPIRow,{kpi:masterData&&masterData.kpi_mayo}),
     React.createElement(PendingPanel,{onCC:onPCC}),
     React.createElement('div',{className:'sl',style:{marginTop:4}},'Tendencia de productividad \u00b7 Marzo \u2013 Junio 2026'),
