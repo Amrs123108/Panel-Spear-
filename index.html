@@ -785,10 +785,15 @@ function KPIRow({kpi}){
 
 // ── Trend Chart ───────────────────────────────────────────────────────────────
 const ML=[{id:'prom',l:'Promesas'},{id:'pct',l:'% vs meta'},{id:'rec',l:'Recaudo'},{id:'gest',l:'Gestiones'}];
-function TrendChart({tendencia}){
+function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
   const td = tendencia || FALLBACK.tendencia;
-  const CART = td.carteras || FALLBACK.tendencia.carteras;
+  const CART_ALL = td.carteras || FALLBACK.tendencia.carteras;
   const TOT  = td.totales  || FALLBACK.tendencia.totales;
+  // Filter carteras based on supervisor/cartera selection
+  const CART_ID_MAP = {ba:'banistmo_activa',br:'banistmo_recovery',su:'sura',ti:'tigo',kr:'krediya',so:'solve',ca:'ca_activa',bl:'la_hipotecaria'};
+  const CART = (filtSup&&filtSup!=='todos'&&visibleCarteras&&visibleCarteras.length>0)
+    ? CART_ALL.filter(function(c){ return visibleCarteras.some(function(vid){ return CART_ID_MAP[c.id]===vid||vid.includes(c.n.toLowerCase().replace(/[^a-z]/g,''))||c.n.toLowerCase().includes(vid.replace(/_/g,' ').replace('banistmo','banistmo')); }); })
+    : CART_ALL;
   const MONTHS = td.meses  || FALLBACK.tendencia.meses;
   const cv=useRef(null),ch=useRef(null);
   const [met,setMet]=useState('prom'),[vw,setVw]=useState('all'),[fi,setFi]=useState(null);
@@ -881,22 +886,31 @@ function TrendChart({tendencia}){
 }
 
 // ── Pending Panel ─────────────────────────────────────────────────────────────
-function PendingPanel({onCC}){
+function PendingPanel({onCC,filtSup,filtCart}){
   const [not,setNot]=useState({});
+  // Filter pending list by supervisor selection
+  var PEND_FILTERED = (!filtSup||filtSup==='todos') ? PEND_DEFAULT
+    : PEND_DEFAULT.filter(function(p){
+        var sup = SUPERVISORS.find(function(s){ return s.name===p.sup; });
+        if(!sup) return true;
+        if(filtSup==='cesar')   return sup.jefe==='cesar';
+        if(filtSup==='liliana') return sup.jefe==='liliana';
+        return sup.id===filtSup;
+      });
   const handle=id=>{const nx={...not,[id]:true};setNot(nx);onCC&&onCC(PEND_DEFAULT.filter(p=>!nx[p.id]).length);};
-  const rem=PEND_DEFAULT.filter(p=>!not[p.id]).length;
+  const rem=PEND_FILTERED.filter(p=>!not[p.id]).length;
   return React.createElement('div',null,
     React.createElement('div',{className:'sl'},'Pendientes de actualizaci\u00f3n \u00b7 hoy 4 jun'),
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'pend-head'},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
           React.createElement('i',{className:'ti ti-alert-circle',style:{fontSize:16,color:'var(--sp-danger)'}}),
-          React.createElement('span',{style:{fontSize:12,fontWeight:700,color:'var(--sp-danger)'}},rem+' carteras sin registrar hoy'),
+          React.createElement('span',{style:{fontSize:12,fontWeight:700,color:'var(--sp-danger)'}},rem+' carteras sin registrar'+(!filtSup||filtSup==='todos'?'':' (filtrado)')+' hoy'),
           React.createElement('span',{className:'bdg bdg-err'},'Requiere acci\u00f3n')),
         React.createElement('span',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'08:42')),
       React.createElement('div',{style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10,padding:'6px 14px',background:'var(--sp-bg)',borderBottom:'1px solid var(--sp-border)',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',color:'var(--sp-text-ter)'}},
         React.createElement('span'),React.createElement('span',null,'Cartera'),React.createElement('span',null,'Supervisor'),React.createElement('span',{style:{textAlign:'right'}},'Acci\u00f3n')),
-      ...PEND_DEFAULT.map(p=>React.createElement('div',{key:p.id,className:'pend-row'+(not[p.id]?' notified':''),style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10,opacity:not[p.id]?.55:1}},
+      ...PEND_FILTERED.map(p=>React.createElement('div',{key:p.id,className:'pend-row'+(not[p.id]?' notified':''),style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10,opacity:not[p.id]?.55:1}},
         React.createElement('div',{style:{width:8,height:8,borderRadius:'50%',background:UC[p.u],alignSelf:'center'}}),
         React.createElement('div',{style:{fontWeight:600,fontSize:12}},p.cartera),
         React.createElement('div',null,
@@ -904,7 +918,7 @@ function PendingPanel({onCC}){
           React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)'}},'Últ. carga: '+p.ul)),
         React.createElement('button',{className:'btn-notify',disabled:not[p.id],onClick:()=>handle(p.id)},not[p.id]?'\u2713 Notificado':React.createElement(React.Fragment,null,React.createElement('i',{className:'ti ti-send',style:{fontSize:11,marginRight:3}}),'Notificar')))),
       React.createElement('div',{className:'pend-ok-section'},'\u2713 Al d\u00eda'),
-      ...ALDIA_DEFAULT.map((item,i)=>React.createElement('div',{key:i,className:'pend-ok-row',style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10}},
+      ...(!filtSup||filtSup==='todos'?ALDIA_DEFAULT:ALDIA_DEFAULT.filter(function(a){var s=SUPERVISORS.find(function(x){return x.name.split(' ')[0]===a.s.split(' ')[0];});if(!s)return true;if(filtSup==='cesar')return s.jefe==='cesar';if(filtSup==='liliana')return s.jefe==='liliana';return s.id===filtSup;})).map((item,i)=>React.createElement('div',{key:i,className:'pend-ok-row',style:{display:'grid',gridTemplateColumns:'8px 1fr 1fr auto',gap:10}},
         React.createElement('div',{style:{width:8,height:8,borderRadius:'50%',background:'var(--sp-success)'}}),
         React.createElement('div',{style:{fontSize:12,fontWeight:600,color:'var(--sp-success)'}},item.c),
         React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)'}},item.s+' \u00b7 '+item.h),
@@ -1249,7 +1263,7 @@ function SeguimientoPage({params}){
               background:['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(c.sup)?'rgba(29,158,117,.12)':'rgba(27,79,216,.12)',
               color:['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(c.sup)?'var(--sp-success)':'var(--sp-blue)',fontWeight:600}},
               ['Andrew González','Miriam Núñez','Víctor Delgado','Oris Jaramillo'].includes(c.sup)?'▸ Eq. Liliana':'▸ Eq. César'))),
-        RReact.createElement(SaveIndicator,{status:saveStatus})),
+        React.createElement(SaveIndicator,{status:saveStatus})),
       React.createElement('div',{className:'card-body'},
         React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-sec)',padding:'6px 9px',background:'var(--sp-bg)',borderRadius:'var(--r-sm)',marginBottom:12}},c.desc),
         (c.t==='simple'||c.t==='tramos')&&React.createElement(React.Fragment,null,React.createElement(CBox,{meta:c.meta,monto:c.monto,pct:c.pct}),React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},c.fields.map(f=>React.createElement('div',{key:f.id,className:'cell-wrap'},React.createElement('div',{className:'cell-label'},f.l),React.createElement('input',{className:'cell-input',type:'number',min:0,placeholder:'0',value:vals[f.id]||'',onChange:e=>setVals(p=>({...p,[f.id]:e.target.value}))}),React.createElement('div',{className:'cell-hint'},f.h))))),
@@ -1368,11 +1382,13 @@ function DashboardPage({masterData,onPCC}){
   const [filtCart,setFiltCart]=useState('todas'); // cartera filter
 
   // Carteras visible based on sup filter
-  var visibleSupIds = filtSup==='todos' ? SUPERVISORS.map(s=>s.id)
-    : (SUP_GROUPS.find(g=>g.id===filtSup)||{sups:[]}).sups||[];
+  var isIndividualSup = filtSup!=='todos' && !SUP_GROUPS.find(g=>g.id===filtSup);
+  var visibleSupIds = filtSup==='todos' ? SUPERVISORS.map(function(s){return s.id;})
+    : isIndividualSup ? [filtSup]
+    : (SUP_GROUPS.find(function(g){return g.id===filtSup;})||{sups:[]}).sups||[];
   var visibleCarteras = filtSup==='todos'
     ? Object.keys(CART_NAMES)
-    : SUPERVISORS.filter(s=>visibleSupIds.includes(s.id)).flatMap(s=>s.carteras);
+    : SUPERVISORS.filter(function(s){return visibleSupIds.includes(s.id);}).flatMap(function(s){return s.carteras;});
 
   // Reset cartera filter when sup changes
   function handleSupFilter(supId){
@@ -1433,9 +1449,9 @@ function DashboardPage({masterData,onPCC}){
           React.createElement('span',{style:{width:6,height:6,borderRadius:'50%',background:'var(--sp-success)',display:'inline-block'}}),
           'Equipo Liliana ('+SUPERVISORS.filter(s=>s.jefe==='liliana').length+' supervisores)'))),
     React.createElement(KPIRow,{kpi:masterData&&masterData.kpi_mayo}),
-    React.createElement(PendingPanel,{onCC:onPCC}),
+    React.createElement(PendingPanel,{onCC:onPCC,filtSup:filtSup,filtCart:filtCart}),
     React.createElement('div',{className:'sl',style:{marginTop:4}},'Tendencia de productividad \u00b7 Marzo \u2013 Junio 2026'),
-    React.createElement(TrendChart,{tendencia:masterData&&masterData.tendencia}),
+    React.createElement(TrendChart,{tendencia:masterData&&masterData.tendencia,filtSup:filtSup,filtCart:filtCart,visibleCarteras:visibleCarteras}),
     React.createElement('div',{className:'sl',style:{marginTop:4}},'Log\u00edstica operativa'),
     React.createElement(LogisticsPanel,{sabados:masterData&&masterData.sabados,teletrabajo:masterData&&masterData.teletrabajo}),
     React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',background:'var(--sp-surface)',border:'1px solid var(--sp-border)',borderRadius:'var(--r-sm)',padding:'8px 12px',display:'flex',gap:8,alignItems:'center',marginTop:4}},
