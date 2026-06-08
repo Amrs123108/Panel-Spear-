@@ -838,12 +838,14 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
     if(ch.current)ch.current.destroy();
     const col=MC[met],gc='rgba(13,27,46,.05)',tc='#8A97A8';
     const mapD=(arr)=>arr.map(v=>v==null?null:v);
-    let ds=vw==='all'
+    // If individual cartera filtered → always show "by cartera" view (not total)
+    var effectiveVw = (filtCart&&filtCart!=='todas') ? 'focus' : vw;
+    let ds=effectiveVw==='all'
       ?[{label:'Consolidado',data:mapD(TOT[met]),borderColor:col,backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,pointBackgroundColor:col,tension:.35,spanGaps:false}]
-      :CART.map((c,i)=>({label:c.n,data:mapD(c[met]),borderColor:fi===null||fi===i?PAL[i%PAL.length]:'rgba(180,178,169,.18)',backgroundColor:'transparent',borderWidth:fi===i?2.5:1.2,pointRadius:fi===null||fi===i?3:1,pointBackgroundColor:PAL[i%PAL.length],tension:.35,spanGaps:false}));
+      :CART.map((c,i)=>({label:c.n,data:mapD(c[met]),borderColor:PAL[i%PAL.length],backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,pointBackgroundColor:PAL[i%PAL.length],tension:.35,spanGaps:false}));
     ch.current=new Chart(ctx,{type:'line',data:{labels:MONTHS,datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:tc,bodyColor:'#0D1B2E',borderColor:'#E2E7EF',borderWidth:1,callbacks:{label:function(c){var v=c.parsed.y;if(v===null)return null;if(met==='rec')return' '+c.dataset.label+': '+fM(v);if(met==='pct')return' '+c.dataset.label+': '+Math.round(v)+'%';return' '+c.dataset.label+': '+fN(v);}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:11},callback:function(v){if(met==='rec')return'B/.'+v.toFixed(1)+'M';if(met==='pct')return v+'%';return v>=1000?(v/1000).toFixed(0)+'K':v;}}}}}});
     return function(){if(ch.current)ch.current.destroy();};
-  },[met,vw,fi,tendencia]);
+  },[met,vw,fi,tendencia,filtCart,filtSup,CART.length]);
   function TrI(p){var arr=p.arr,r=trCalc(arr);if(r.d==='up')return React.createElement('span',{className:'t-up'},'\u2191 '+Math.abs(r.p).toFixed(1)+'%');if(r.d==='dn')return React.createElement('span',{className:'t-dn'},'\u2193 '+Math.abs(r.p).toFixed(1)+'%');return React.createElement('span',{className:'t-eq'},'\u2192 estable');}
   function SB(p){var arr=p.arr,m=p.m,s=sBdg(arr,m);var lb={ok:'\u2191 Sobre meta',warn:'\u26a0 En riesgo',err:'\u2193 Cr\u00edtico',neutral:'Estable'};return React.createElement('span',{className:'bdg bdg-'+s},lb[s]);}
   var monthPills=MONTHS.map(function(mo,idx){return React.createElement('span',{key:mo,style:{fontSize:10,padding:'2px 8px',borderRadius:20,background:idx===3?'var(--sp-blue-light)':'var(--sp-bg)',color:idx===3?'var(--sp-blue)':'var(--sp-text-ter)',border:'1px solid '+(idx===3?'var(--sp-blue-border)':'var(--sp-border)'),fontWeight:idx===3?600:500}},mo+(idx===3?' \u25cf':''));});
@@ -1292,7 +1294,7 @@ function ProductividadPage(){
       var real_prom=acum.promesas||0;
       var faltan=Math.max(0,mtd_esp-real_prom);
       var avance_pct=mtd_esp>0?Math.min(Math.round(real_prom/mtd_esp*100),200):0;
-      var proy=DA_>0?Math.round(real_prom+(real_prom/DA_*(DH_-DA_))):0;
+      var proy=DA_>0&&real_prom>0?Math.round(real_prom+(real_prom/DA_*(DH_-DA_))):0;
       var color=avance_pct>=90?'var(--sp-success)':avance_pct>=70?'var(--sp-warning)':'var(--sp-danger)';
       var bgColor=avance_pct>=90?'var(--sp-success-bg)':avance_pct>=70?'var(--sp-warning-bg)':'var(--sp-danger-bg)';
       var bdrColor=avance_pct>=90?'var(--sp-success-bdr)':avance_pct>=70?'var(--sp-warning-bdr)':'var(--sp-danger-bdr)';
@@ -1309,7 +1311,7 @@ function ProductividadPage(){
           React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},'Real acumulado'),
           React.createElement('div',{style:{fontSize:22,fontWeight:800,color:'var(--sp-text)',lineHeight:1}},fN(real_prom)),
           React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginTop:2}},
-            real_prom>0?'Promedio '+Math.round(real_prom/DA_)+'/día':'Sin datos cargados aún')),
+            real_prom>0?'Promedio '+Math.round(real_prom/DA_)+'/día':'Carga datos para ver progreso')),
         // Avance + Faltan
         React.createElement('div',null,
           React.createElement('div',{style:{fontSize:10,color:color,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},'Avance vs MTD'),
@@ -1337,7 +1339,7 @@ function ProductividadPage(){
     React.createElement('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:12}},
       weekDays.map(d=>{const st=ds(d.n);const iS=sel===d.n;return React.createElement('button',{key:d.n,onClick:()=>st!=='future'&&setSel(d.n),className:'day-btn '+(iS?'selected':st),style:{width:64,padding:'7px 4px'}},d.l);})),
 
-    sel<DH&&React.createElement('div',{className:'alert-bar warn',style:{marginBottom:8}},
+    (ds(sel)==='filled'||ds(sel)==='empty')&&sel!==TODAY_NUM&&React.createElement('div',{className:'alert-bar warn',style:{marginBottom:8}},
       React.createElement('i',{className:'ti ti-alert-triangle',style:{fontSize:14,flexShrink:0}}),
       'Editando d\u00eda '+sel+' ('+((weekDays.find(d=>d.n===sel)||{}).iso||'')+') \u2014 ya guardado. Cambios sobreescribir\u00e1n el registro existente.',
       React.createElement('button',{onClick:()=>setHistKey('productividad/'+cart+'/'+(weekDays.find(d=>d.n===sel)||{iso:TODAY_ISO}).iso),
@@ -1359,7 +1361,10 @@ function ProductividadPage(){
     React.createElement('div',{style:{display:'flex',gap:8,justifyContent:'flex-end',alignItems:'center',marginTop:8}},
       React.createElement('button',{className:'btn-secondary',onClick:()=>setHistKey('productividad/'+cart+'/'+TODAY_ISO)},
         React.createElement('i',{className:'ti ti-history',style:{marginRight:4}}),'Historial de cambios'),
-      React.createElement('button',{className:'btn-secondary'},'← Semana anterior'),
+      React.createElement('button',{className:'btn-secondary',onClick:function(){
+        var p=new Date(weekMonday);p.setDate(p.getDate()-7);
+        var nwd=getWeekDays(p);setWeekMonday(p);setSel(nwd[nwd.length-1].n);
+      }},'← Semana anterior'),
       React.createElement('button',{className:'btn-primary',onClick:()=>doSave()},
         React.createElement('i',{className:'ti ti-device-floppy',style:{marginRight:5}}),lbl)));
 }
@@ -1386,6 +1391,17 @@ function SeguimientoPage({params}){
   };
   const [sk,setSk]=useState('ba'),[vals,setVals]=useState({}),[saveStatus,setSaveStatus]=useState(null),[toast,setToast]=useState(null);
   const c=SD2[sk];const DA=TODAY_NUM,DH_=26;
+  // Load previously saved data for this cartera from Blob
+  useEffect(function(){
+    setVals({});
+    apiGet('seguimiento/'+sk+'/'+TODAY_ISO).then(function(data){
+      if(data&&typeof data==='object'&&!data.error){
+        var loaded={};
+        Object.keys(data).forEach(function(k){ if(!k.startsWith('_')&&k!=='cartera'&&k!=='fecha') loaded[k]=String(data[k]); });
+        setVals(loaded);
+      }
+    });
+  },[sk]);
   const CBox=({meta,monto,pct})=>{if(!meta)return null;const nec=calcN(meta,monto,pct);const mtd=calcMTD(nec,DH_,DA);
     return React.createElement('div',{className:'calc-box'},
       React.createElement('div',null,React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)',marginBottom:2}},React.createElement('i',{className:'ti ti-calculator',style:{marginRight:4}}),'Para cumplir ',React.createElement('strong',null,fB(meta))),React.createElement('div',{style:{fontSize:11,color:'var(--sp-blue)'}},'necesitas ',React.createElement('strong',{style:{fontSize:18}},fN(nec)),' promesas en el mes'),React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',opacity:.8,marginTop:2}},'A hoy (d\u00eda '+DA+') ~'+fN(mtd)+' acumuladas')),
