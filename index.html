@@ -824,13 +824,11 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
     ? CART_ALL.filter(function(c){ return visibleCarteras.some(function(vid){ return CART_ID_MAP[c.id]===vid; }); })
     : CART_ALL;
   // Also filter by individual cartera selection
-  var CART = (filtCart&&filtCart!=='todas')
-    ? CART_BY_SUP.filter(function(c){
-        return CART_ID_MAP[c.id]===filtCart || (CART_NAMES[filtCart]&&c.n===CART_NAMES[filtCart]);
-      })
+  var CART_FILTERED = (filtCart&&filtCart!=='todas')
+    ? CART_BY_SUP.filter(function(c){ return CART_ID_MAP[c.id]===filtCart; })
     : CART_BY_SUP;
-  // If filter results in empty (cartera not in trend data), show all for that supervisor
-  if(CART.length===0) { var CART=CART_BY_SUP; }
+  // If no match (cartera not in trend data), show supervisor's full set
+  var CART = CART_FILTERED.length>0 ? CART_FILTERED : CART_BY_SUP;
   const MONTHS = td.meses  || FALLBACK.tendencia.meses;
   const cv=useRef(null),ch=useRef(null);
   const [met,setMet]=useState('prom'),[vw,setVw]=useState('all'),[fi,setFi]=useState(null);
@@ -906,13 +904,16 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
     return Math.round(realMTD+(avg*dias_rest));
   }
 
-  // Apply cartera filter to table rows
+  // Apply cartera filter to table rows (using same CART already filtered by supervisor)
   var CART_TABLE = (filtCart&&filtCart!=='todas')
     ? CART.filter(function(c){
-        var rp=RITMO_PARAMS[c.id];
-        return rp&&(rp.cart===filtCart||CART_NAMES[filtCart]===c.n||c.n.toLowerCase().replace(/[^a-z]/g,'')===filtCart.replace(/_/g,''));
+        var map={ba:'banistmo_activa',br:'banistmo_recovery',su:'sura',ti:'tigo',
+                 kr:'krediya',so:'solve',ca:'ca_activa',bl:'la_hipotecaria'};
+        return map[c.id]===filtCart;
       })
     : CART;
+  // If no match (e.g. cartera not in trend chart), show all
+  if(CART_TABLE.length===0) CART_TABLE=CART;
   var tableRows=CART_TABLE.map(function(c){
     var esp=getEsperado(c.id);
     var rp=RITMO_PARAMS[c.id];
@@ -1547,7 +1548,14 @@ function DashboardPage({masterData,onPCC}){
   }
 
   // Cart chips from visible carteras
-  var cartChips = [{id:'todas',label:'Todas'},...visibleCarteras.map(id=>({id,label:CART_NAMES[id]||id}))];
+  // Only show cartera chips for carteras that exist in trend data
+  var CHART_CART_IDS = {'banistmo_activa':true,'banistmo_recovery':true,'sura':true,
+    'tigo':true,'krediya':true,'solve':true,'ca_activa':true,'la_hipotecaria':true};
+  var cartChips = [{id:'todas',label:'Todas'},
+    ...visibleCarteras
+      .filter(function(id){ return CHART_CART_IDS[id]; }) // only chartable carteras
+      .map(function(id){ return {id:id, label:CART_NAMES[id]||id}; })
+  ];
 
   return React.createElement('div',null,
     // ── Dual filter bar ──────────────────────────────────────────────────────
