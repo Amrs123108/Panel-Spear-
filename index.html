@@ -755,7 +755,7 @@ function Topbar({blobStatus}){
         React.createElement('div',{style:{width:30,height:30,borderRadius:'50%',background:'var(--sp-blue)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}},'CZ'),
         React.createElement('div',null,
           React.createElement('div',{style:{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.85)',lineHeight:1.2}},'César Zambrano'),
-          React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',fontWeight:500}},'Gerente')))));
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-blue)',fontWeight:500}},'Gerente · Panel Spear v1.0')))));
 }
 const NTABS=[{id:'dashboard',l:'Dashboard'},{id:'productividad',l:'Productividad'},{id:'seguimiento',l:'Seguimiento'},{id:'logistica',l:'Logística'},{id:'parametros',l:'Parámetros'},{id:'pendientes',l:'Pendientes',badge:true}];
 function Navigation({active,onChange,pc}){
@@ -776,11 +776,40 @@ function KCard({label,value,vColor,prog,pColor,meta,accent}){
 }
 function KPIRow({kpi}){
   const k=kpi||FALLBACK.kpi_mayo;
+  const [sinCarga,setSinCarga]=useState(null);
+  const TOTAL_CART=13;
+  // All cartera IDs to check for today's data
+  const CART_IDS=['banistmo_activa','banistmo_recovery','ca_activa','castigo',
+    'la_hipotecaria','global_bank','solve','bac','banco_delta','rodelag',
+    'simpol','tigo','krediya'];
+
+  useEffect(function(){
+    var sin=0,checked=0;
+    CART_IDS.forEach(function(cartId){
+      apiGet('productividad/'+cartId+'/'+TODAY_ISO).then(function(data){
+        checked++;
+        // A cartera "has data today" if it has at least one non-zero field
+        var hasData=data&&(data.promesas||data.gestiones||data.rec_op);
+        if(!hasData) sin++;
+        if(checked===CART_IDS.length) setSinCarga(sin);
+      });
+    });
+  },[]);
+
+  var sinVal   = sinCarga!=null ? sinCarga+' / '+TOTAL_CART : '…';
+  var conCarga = sinCarga!=null ? TOTAL_CART-sinCarga : 0;
+  var sinPct   = sinCarga!=null ? Math.round(conCarga/TOTAL_CART*100) : 50;
+  var sinMeta  = sinCarga!=null
+    ? (sinCarga===0
+        ? '<span style="color:var(--sp-success);font-weight:600">✓ Todas al día</span>'
+        : '<span style="color:var(--sp-danger);font-weight:600">'+sinCarga+' sin registrar hoy</span>')
+    : '<span style="color:var(--sp-text-ter)">Consultando…</span>';
+
   return React.createElement('div',{className:'kpi-grid'},
-    React.createElement(KCard,{label:'Min. IA \u00b7 mayo cierre',value:fN(k.ia_real),accent:'var(--sp-blue)',prog:k.ia_pct,pColor:'var(--sp-blue)',meta:'<span class="t-dn">\u2193 3.3%</span> vs abril \u00b7 <b>'+k.ia_pct+'%</b> de meta '+fN(k.ia_meta)}),
-    React.createElement(KCard,{label:'% Cumpl. IA',value:k.ia_pct+'%',accent:'#378ADD',prog:k.ia_pct,pColor:'#378ADD',meta:'<span class="t-dn">\u2193 3 meses consecutivos</span>'}),
-    React.createElement(KCard,{label:'Recaudo total \u00b7 mayo',value:fM(k.rec_real/1000000),accent:'var(--sp-success)',prog:k.rec_pct,pColor:'var(--sp-success)',meta:'<span class="t-dn">\u2193 10.7%</span> vs abril \u00b7 <b>'+k.rec_pct+'%</b> meta '+fM(k.rec_meta/1000000)}),
-    React.createElement(KCard,{label:'Carteras sin carga \u00b7 jun',value:'10 / 13',vColor:'var(--sp-danger)',accent:'var(--sp-danger)',prog:23,pColor:'var(--sp-danger)',meta:'<span style="color:var(--sp-danger);font-weight:600">Junio reci\u00e9n iniciado</span>'}));
+    React.createElement(KCard,{label:'Min. IA · mayo cierre',value:fN(k.ia_real),accent:'var(--sp-blue)',prog:k.ia_pct,pColor:'var(--sp-blue)',meta:'<span class="t-dn">↓ 3.3%</span> vs abril · <b>'+k.ia_pct+'%</b> de meta '+fN(k.ia_meta)}),
+    React.createElement(KCard,{label:'% Cumpl. IA',value:k.ia_pct+'%',accent:'#378ADD',prog:k.ia_pct,pColor:'#378ADD',meta:'<span class="t-dn">↓ 3 meses consecutivos</span>'}),
+    React.createElement(KCard,{label:'Recaudo total · mayo',value:fM(k.rec_real/1000000),accent:'var(--sp-success)',prog:k.rec_pct,pColor:'var(--sp-success)',meta:'<span class="t-dn">↓ 10.7%</span> vs abril · <b>'+k.rec_pct+'%</b> meta '+fM(k.rec_meta/1000000)}),
+    React.createElement(KCard,{label:'Sin carga hoy · '+TODAY_ISO.slice(5),value:sinVal,vColor:sinCarga===0?'var(--sp-success)':'var(--sp-danger)',accent:sinCarga===0?'var(--sp-success)':'var(--sp-danger)',prog:sinPct,pColor:sinCarga===0?'var(--sp-success)':'var(--sp-danger)',meta:sinMeta}));
 }
 
 // ── Trend Chart ───────────────────────────────────────────────────────────────
@@ -791,9 +820,17 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
   const TOT  = td.totales  || FALLBACK.tendencia.totales;
   // Filter carteras based on supervisor/cartera selection
   const CART_ID_MAP = {ba:'banistmo_activa',br:'banistmo_recovery',su:'sura',ti:'tigo',kr:'krediya',so:'solve',ca:'ca_activa',bl:'la_hipotecaria'};
-  const CART = (filtSup&&filtSup!=='todos'&&visibleCarteras&&visibleCarteras.length>0)
-    ? CART_ALL.filter(function(c){ return visibleCarteras.some(function(vid){ return CART_ID_MAP[c.id]===vid||vid.includes(c.n.toLowerCase().replace(/[^a-z]/g,''))||c.n.toLowerCase().includes(vid.replace(/_/g,' ').replace('banistmo','banistmo')); }); })
+  var CART_BY_SUP = (filtSup&&filtSup!=='todos'&&visibleCarteras&&visibleCarteras.length>0)
+    ? CART_ALL.filter(function(c){ return visibleCarteras.some(function(vid){ return CART_ID_MAP[c.id]===vid; }); })
     : CART_ALL;
+  // Also filter by individual cartera selection
+  var CART = (filtCart&&filtCart!=='todas')
+    ? CART_BY_SUP.filter(function(c){
+        return CART_ID_MAP[c.id]===filtCart || (CART_NAMES[filtCart]&&c.n===CART_NAMES[filtCart]);
+      })
+    : CART_BY_SUP;
+  // If filter results in empty (cartera not in trend data), show all for that supervisor
+  if(CART.length===0) { var CART=CART_BY_SUP; }
   const MONTHS = td.meses  || FALLBACK.tendencia.meses;
   const cv=useRef(null),ch=useRef(null);
   const [met,setMet]=useState('prom'),[vw,setVw]=useState('all'),[fi,setFi]=useState(null);
@@ -817,26 +854,71 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
   var legendItems=vw==='all'?React.createElement('span',{style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--sp-text-sec)',fontWeight:500}},React.createElement('span',{style:{width:10,height:10,borderRadius:'50%',background:MC[met],display:'inline-block'}}), ' Total consolidado'):CART.map(function(c,i){return React.createElement('span',{key:c.id,onClick:function(){setFi(function(prev){return prev===i?null:i;});},style:{display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--sp-text-sec)',cursor:'pointer',padding:'2px 7px',borderRadius:20,fontWeight:fi===i?600:400,background:fi===i?'var(--sp-bg)':'transparent',userSelect:'none'}},React.createElement('span',{style:{width:8,height:8,borderRadius:'50%',background:PAL[i%PAL.length],display:'inline-block',opacity:fi===null||fi===i?1:.2}}),c.n);});
   // ── PARAMS for MTD calculation ──────────────────────────────────────────────
   var RITMO_PARAMS = {
-    ba:{meta:500000,monto:230,pct:50},  su:{meta:750000,monto:121,pct:66},
-    ti:{meta:280000,monto:44, pct:70},  kr:{meta:100000,monto:85, pct:44},
-    so:{meta:35000, monto:81, pct:44},  ca:{meta:125000,monto:215,pct:72},
-    bl:{meta:505000,monto:31477,pct:39},br:{meta:311000,monto:null,pct:null},
+    ba:{meta:500000,monto:230,pct:50,cart:'banistmo_activa'},
+    su:{meta:750000,monto:121,pct:66,cart:'sura'},
+    ti:{meta:280000,monto:44, pct:70,cart:'tigo'},
+    kr:{meta:100000,monto:85, pct:44,cart:'krediya'},
+    so:{meta:35000, monto:81, pct:44,cart:'solve'},
+    ca:{meta:125000,monto:215,pct:72,cart:'ca_activa'},
+    bl:{meta:505000,monto:31477,pct:39,cart:'la_hipotecaria'},
+    br:{meta:311000,monto:null,pct:null,cart:'banistmo_recovery'},
   };
-  var DH_JUN=26, DA_JUN=TODAY_MONTH===5?TODAY_NUM:26; // dias habiles pasados en junio
+  var DH_JUN=26, DA_JUN=TODAY_MONTH===5?TODAY_NUM:26;
 
-  function getEsperado(id,m){
+  // Load real MTD from Blob (sum promesas for each day of current month)
+  const [mtdData,setMtdData]=useState({});
+  useEffect(function(){
+    if(TODAY_MONTH!==5) return; // only load if we're in June
+    var cartIds=['banistmo_activa','sura','tigo','krediya','solve','ca_activa','la_hipotecaria','banistmo_recovery'];
+    cartIds.forEach(function(cartId){
+      var total=0;var loaded=0;
+      for(var day=1;day<=TODAY_NUM;day++){
+        var iso='2026-06-'+String(day).padStart(2,'0');
+        (function(d,cid){
+          apiGet('productividad/'+cid+'/'+d).then(function(data){
+            if(data&&data.promesas) total+=parseFloat(data.promesas)||0;
+            loaded++;
+            if(loaded===TODAY_NUM){
+              setMtdData(function(p){var n=Object.assign({},p);n[cid]=total;return n;});
+            }
+          });
+        })(iso,cartId);
+      }
+    });
+  },[]);
+
+  // MTD = (meta / dias_habiles_mes) * dias_transcurridos
+  // Ejemplo: meta=2600, DH=26, DA=5 → 2600/26*5 = 500
+  function getMTDEsperado(id){
     var p=RITMO_PARAMS[id];if(!p||!p.monto||!p.pct)return null;
-    var nec=Math.ceil(p.meta/Math.max(p.monto,1)/(p.pct/100));
-    return Math.round(nec*(DA_JUN/DH_JUN));
+    var prom_nec_mes=Math.ceil(p.meta/Math.max(p.monto,1)/(p.pct/100));
+    var ritmo_diario=prom_nec_mes/DH_JUN;
+    return Math.round(ritmo_diario*DA_JUN);
+  }
+  // LEGACY alias so existing code still works
+  function getEsperado(id){ return getMTDEsperado(id); }
+  // Proyeccion = real + (promedio_diario * dias_restantes)
+  // Ejemplo: real=100 en 5 días → avg=20/día, restan 21 → 100 + 420 = 520
+  function getProyeccion(realMTD){
+    if(!realMTD||DA_JUN===0) return null;
+    var avg=realMTD/DA_JUN;
+    var dias_rest=DH_JUN-DA_JUN;
+    return Math.round(realMTD+(avg*dias_rest));
   }
 
-  // For the table, always show Mar/Abr/May columns + MTD columns (ignoring the met toggle for history cols)
-  var tableRows=CART.map(function(c){
-    var esp=getEsperado(c.id,met);
-    // Real MTD: from jun data (null for now = no data yet loaded per day)
-    var realMTD=null; // TODO: sum from Blob productividad keys
-    var avance=esp&&realMTD!=null?Math.round(realMTD/esp*100):null;
-    var proy=esp&&realMTD!=null?Math.round(realMTD/Math.max(DA_JUN,1)*DH_JUN):null;
+  // Apply cartera filter to table rows
+  var CART_TABLE = (filtCart&&filtCart!=='todas')
+    ? CART.filter(function(c){
+        var rp=RITMO_PARAMS[c.id];
+        return rp&&(rp.cart===filtCart||CART_NAMES[filtCart]===c.n||c.n.toLowerCase().replace(/[^a-z]/g,'')===filtCart.replace(/_/g,''));
+      })
+    : CART;
+  var tableRows=CART_TABLE.map(function(c){
+    var esp=getEsperado(c.id);
+    var rp=RITMO_PARAMS[c.id];
+    var realMTD=rp&&mtdData[rp.cart]!=null?mtdData[rp.cart]:null;
+    var avance=esp&&esp>0&&realMTD!=null?Math.round(realMTD/esp*100):null;
+    var proy=getProyeccion(realMTD);
     var semColor=avance==null?'var(--sp-text-ter)':avance>=90?'var(--sp-success)':avance>=70?'var(--sp-warning)':'var(--sp-danger)';
     var semBg=avance==null?'var(--sp-bg)':avance>=90?'var(--sp-success-bg)':avance>=70?'var(--sp-warning-bg)':'var(--sp-danger-bg)';
     return React.createElement('tr',{key:c.id},
@@ -853,7 +935,7 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
     React.createElement('td',null,'Total general'),
     ...[0,1,2].map(function(i){return React.createElement('td',{key:i,style:{fontSize:11}},fCell(TOT[met][i],i,met)||'—');}),
     React.createElement('td',{style:{fontSize:11,color:'var(--sp-blue)',fontWeight:600}},
-      fN(Object.values(RITMO_PARAMS).reduce(function(s,p){return s+(p.monto&&p.pct?Math.round(Math.ceil((p.meta/Math.max(p.monto,1)/(p.pct/100))*(DA_JUN/DH_JUN))):0);},0))),
+      fN(Object.values(RITMO_PARAMS).reduce(function(s,p){return s+(p.monto&&p.pct?Math.round(Math.ceil(p.meta/Math.max(p.monto,1)/(p.pct/100))/DH_JUN*DA_JUN):0);},0))),
     React.createElement('td',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'—'),
     React.createElement('td',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'—'),
     React.createElement('td',{style:{fontSize:11,color:'var(--sp-text-ter)'}},'—')));
@@ -881,7 +963,7 @@ function TrendChart({tendencia,filtSup,filtCart,visibleCarteras}){
           React.createElement('th',{style:{width:'12%'}},'Esperado hoy'),
           React.createElement('th',{style:{width:'12%'}},'Real MTD'),
           React.createElement('th',{style:{width:'13%'}},'Avance'),
-          React.createElement('th',{style:{width:'13%'}},'Proy. cierre'))),
+          React.createElement('th',{style:{width:'13%'}},'Proy. cierre (real + rest)'))),
         React.createElement('tbody',null,tableRows))));
 }
 
@@ -900,7 +982,7 @@ function PendingPanel({onCC,filtSup,filtCart}){
   const handle=id=>{const nx={...not,[id]:true};setNot(nx);onCC&&onCC(PEND_DEFAULT.filter(p=>!nx[p.id]).length);};
   const rem=PEND_FILTERED.filter(p=>!not[p.id]).length;
   return React.createElement('div',null,
-    React.createElement('div',{className:'sl'},'Pendientes de actualizaci\u00f3n \u00b7 hoy 4 jun'),
+    React.createElement('div',{className:'sl'},'Pendientes de actualizaci\u00f3n \u00b7 hoy '+TODAY_DISPLAY.split('\u00b7')[0].trim()),
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'pend-head'},
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
@@ -1106,7 +1188,7 @@ function ProductividadPage(){
     if(saved.includes(d)) return 'filled';
     return 'empty';
   };
-  const acum=COLS.reduce((a,c)=>{a[c.id]=Object.entries(rows).filter(([d])=>+d<=DH).reduce((s,[,r])=>s+(parseFloat(r[c.id])||0),0);return a},{});
+  const acum=COLS.reduce((a,c)=>{a[c.id]=Object.entries(rows).filter(([d])=>+d<=TODAY_NUM).reduce((s,[,r])=>s+(parseFloat(r[c.id])||0),0);return a},{});
 
   const doSave=async(editedBy)=>{
     setSaveStatus('saving');
@@ -1179,7 +1261,75 @@ function ProductividadPage(){
         React.createElement('div',{style:{fontSize:13,fontWeight:500,marginTop:4}},'Importar desde Excel'),
         React.createElement('div',{style:{fontSize:11,color:'var(--sp-text-ter)',marginTop:2}},'Copia el rango \u00b7 Ctrl+V para pegar'))),
 
-    // Upload progress bar
+    // ── Barra de progreso vs meta ──────────────────────────────────────────────
+    (function(){
+      var sup_params=null;
+      var pid=cart;
+      // Find params for this cartera from RITMO_PARAMS equivalent
+      var CART_PARAMS={
+        banistmo_activa:{meta:500000,monto:230,pct:50},
+        sura:            {meta:750000,monto:121,pct:66},
+        tigo:            {meta:280000,monto:44, pct:70},
+        krediya:         {meta:100000,monto:85, pct:44},
+        solve:           {meta:35000, monto:81, pct:44},
+        ca_activa:       {meta:125000,monto:215,pct:72},
+        la_hipotecaria:  {meta:505000,monto:31477,pct:39},
+        banistmo_recovery:{meta:311000,monto:null,pct:null},
+        bac:             {meta:60000, monto:525,pct:43},
+        banco_delta:     {meta:10000, monto:250,pct:40},
+        global_bank:     {meta:30000, monto:2500,pct:50},
+        rodelag:         {meta:4000,  monto:62, pct:76},
+        simpol:          {meta:12000, monto:330,pct:50},
+        tigo:            {meta:280000,monto:44, pct:70},
+      };
+      var cp=CART_PARAMS[cart];
+      if(!cp||!cp.monto||!cp.pct) return null;
+      var DH_=26,DA_=TODAY_MONTH===5?TODAY_NUM:26;
+      var prom_nec_mes=Math.ceil(cp.meta/Math.max(cp.monto,1)/(cp.pct/100));
+      var mtd_esp=Math.round(prom_nec_mes/DH_*DA_);
+      var prom_diario=Math.round(prom_nec_mes/DH_);
+      var real_prom=acum.promesas||0;
+      var faltan=Math.max(0,mtd_esp-real_prom);
+      var avance_pct=mtd_esp>0?Math.min(Math.round(real_prom/mtd_esp*100),200):0;
+      var proy=DA_>0?Math.round(real_prom+(real_prom/DA_*(DH_-DA_))):0;
+      var color=avance_pct>=90?'var(--sp-success)':avance_pct>=70?'var(--sp-warning)':'var(--sp-danger)';
+      var bgColor=avance_pct>=90?'var(--sp-success-bg)':avance_pct>=70?'var(--sp-warning-bg)':'var(--sp-danger-bg)';
+      var bdrColor=avance_pct>=90?'var(--sp-success-bdr)':avance_pct>=70?'var(--sp-warning-bdr)':'var(--sp-danger-bdr)';
+      return React.createElement('div',{style:{background:bgColor,border:'1px solid '+bdrColor,
+        borderRadius:'var(--r)',padding:'12px 16px',marginBottom:12,display:'grid',
+        gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:12,alignItems:'center'}},
+        // MTD Esperado
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:10,color:color,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},'MTD Esperado hoy'),
+          React.createElement('div',{style:{fontSize:22,fontWeight:800,color:color,lineHeight:1}},fN(mtd_esp)),
+          React.createElement('div',{style:{fontSize:10,color:color,opacity:.8,marginTop:2}},prom_diario+' promesas/día × '+DA_+' días')),
+        // Real acumulado
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},'Real acumulado'),
+          React.createElement('div',{style:{fontSize:22,fontWeight:800,color:'var(--sp-text)',lineHeight:1}},fN(real_prom)),
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginTop:2}},
+            real_prom>0?'Promedio '+Math.round(real_prom/DA_)+'/día':'Sin datos cargados aún')),
+        // Avance + Faltan
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:10,color:color,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},'Avance vs MTD'),
+          React.createElement('div',{style:{fontSize:22,fontWeight:800,color:color,lineHeight:1}},avance_pct+'%'),
+          React.createElement('div',{style:{fontSize:10,color:color,marginTop:2}},
+            faltan>0?'Te faltan '+fN(faltan)+' promesas':'\u2713 On track')),
+        // Proyección
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},'Proyección cierre'),
+          React.createElement('div',{style:{fontSize:22,fontWeight:800,color:proy>=prom_nec_mes?'var(--sp-success)':'var(--sp-danger)',lineHeight:1}},fN(proy)),
+          React.createElement('div',{style:{fontSize:10,color:'var(--sp-text-ter)',marginTop:2}},'Meta: '+fN(prom_nec_mes)+' promesas')),
+        // Progress bar — full width below
+        React.createElement('div',{style:{gridColumn:'1/-1'}},
+          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:3,fontSize:10,color:color}},
+            React.createElement('span',null,'0'),
+            React.createElement('span',{style:{fontWeight:600}},fN(real_prom)+' / '+fN(mtd_esp)+' esperado hoy'),
+            React.createElement('span',null,fN(prom_nec_mes)+' meta mes')),
+          React.createElement('div',{style:{height:8,background:'rgba(255,255,255,.4)',borderRadius:4,overflow:'hidden'}},
+            React.createElement('div',{style:{height:8,width:Math.min(avance_pct,100)+'%',background:color,borderRadius:4,transition:'width .5s ease'}}))));
+    })(),
+    // ── Upload progress bar ──────────────────────────────────────────────────
     React.createElement(UploadProgress,{files:uploadFiles,progress:uploadProg,done:uploadDone,error:uploadErr}),
 
     // Day picker
